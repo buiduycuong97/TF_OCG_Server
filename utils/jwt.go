@@ -22,7 +22,7 @@ func GenerateRefreshToken(id int32) (string, error) {
 	signingKey := []byte("secretKey")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"id":  id,
-		"exp": time.Now().Add(time.Hour * 24).Unix(), // Token hết hạn sau 24h
+		"exp": time.Now().Add(time.Hour * 24).Unix(),
 	})
 	tokenString, err := token.SignedString(signingKey)
 	if err != nil {
@@ -58,7 +58,7 @@ func GenerateRefreshTokenAdmin(role string) (string, error) {
 	signingKey := []byte("secretKey")
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"role": role,
-		"exp":  time.Now().Add(time.Hour * 24).Unix(), // Token hết hạn sau 24h
+		"exp":  time.Now().Add(time.Hour * 24).Unix(),
 	})
 	tokenString, err := token.SignedString(signingKey)
 	if err != nil {

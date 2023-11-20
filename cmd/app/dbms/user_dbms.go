@@ -88,5 +88,19 @@ func LoginAdmin(user *models.User) (userRes *models.User, err error) {
 	} else {
 		return userRes, nil
 	}
+}
 
+func GetUserByEmail(email string) (*models.User, error) {
+	user := &models.User{}
+	err := database.Db.Where("email = ?", email).First(user).Error
+	return user, err
+}
+
+func GetUserByResetToken(resetToken string) (*models.User, error) {
+	var user models.User
+	err := database.Db.Where("reset_token = ?", resetToken).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

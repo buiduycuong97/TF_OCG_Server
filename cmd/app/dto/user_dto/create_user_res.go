@@ -1,6 +1,6 @@
 package user_dto
 
-type CreateUserReq struct {
+type CreateUserRes struct {
 	UserID   int32  `json:"userID"`
 	UserName string `json:"userName"`
 	Email    string `json:"email"`
