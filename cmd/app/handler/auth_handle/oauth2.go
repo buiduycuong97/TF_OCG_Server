@@ -3,9 +3,11 @@ package auth_handle
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"gopkg.in/gomail.v2"
 	"io"
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
@@ -104,4 +106,94 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	response_api.JSON(w, http.StatusOK, loginRes)
 	fmt.Fprintf(w, "Response : %s", content)
+}
+
+func HandleForgetPassword(w http.ResponseWriter, r *http.Request) {
+	var input dto.ForgetPasswordReq
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		response_api.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+	user, err := dbms.GetUserByEmail(input.Email)
+	if err != nil {
+		response_api.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	if user == nil {
+		response_api.ERROR(w, http.StatusNotFound, errors.New("User not found"))
+		return
+	}
+	resetToken, err := utils.GenerateResetToken()
+	if err != nil {
+		response_api.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	user.ResetToken = resetToken
+	err = dbms.UpdateUser(user, user.UserID)
+	if err != nil {
+		response_api.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	err = sendResetPasswordEmail(user.Email, resetToken)
+	if err != nil {
+		response_api.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	response_api.JSON(w, http.StatusOK, "Reset password email sent successfully")
+}
+
+func HandleResetPassword(w http.ResponseWriter, r *http.Request) {
+	var input dto.ResetPasswordReq
+	err := json.NewDecoder(r.Body).Decode(&input)
+	if err != nil {
+		response_api.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+	user, err := dbms.GetUserByResetToken(input.ResetToken)
+	if err != nil {
+		response_api.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	if user == nil {
+		response_api.ERROR(w, http.StatusNotFound, errors.New("Invalid reset token"))
+		return
+	}
+
+	hashedPassword, err := utils.HashPassword(input.NewPassword)
+	if err != nil {
+		response_api.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	user.Password = hashedPassword
+	user.ResetToken = ""
+	err = dbms.UpdateUser(user, user.UserID)
+	if err != nil {
+		response_api.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	response_api.JSON(w, http.StatusOK, "Password reset successfully")
+}
+
+func sendResetPasswordEmail(email, resetToken string) error {
+	emailAddress := "pau30012002@gmail.com"
+	emailPassword := "pljf fqgx yycq ynhq"
+	subject := "Reset Your Password"
+	body := fmt.Sprintf("Click the following link to reset your password: http://localhost:8080/reset-password?token=%s", resetToken)
+
+	m := gomail.NewMessage()
+	m.SetHeader("From", emailAddress)
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", subject)
+	m.SetBody("text/html", body)
+
+	dialer := gomail.NewDialer("smtp.gmail.com", 587, emailAddress, emailPassword)
+
+	if err := dialer.DialAndSend(m); err != nil {
+		return err
+	}
+
+	return nil
 }

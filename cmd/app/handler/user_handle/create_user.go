@@ -43,7 +43,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
-	createUserRes := user_dto.CreateUserReq{
+	createUserRes := user_dto.CreateUserRes{
 		UserID:   result.UserID,
 		UserName: result.UserName,
 		Email:    result.Email,
