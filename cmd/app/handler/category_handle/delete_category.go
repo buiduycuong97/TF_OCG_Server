@@ -1,4 +1,4 @@
-package product_handle
+package category_handle
 
 import (
 	"github.com/gorilla/mux"
@@ -9,17 +9,17 @@ import (
 	"tf_ocg/proto/models"
 )
 
-func DeleteProduct(w http.ResponseWriter, r *http.Request) {
+func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	pid, err := strconv.ParseUint(vars["id"], 10, 32)
-	pid32 := int32(pid)
+	cid, err := strconv.ParseUint(vars["id"], 10, 32)
+	cid32 := int32(cid)
 	if err != nil {
 		res.ERROR(w, http.StatusBadRequest, err)
 		return
 	}
 
-	var product models.Product
-	err = dbms.DeleteProduct(&product, pid32)
+	var category models.Category
+	err = dbms.DeleteCategory(&category, cid32)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
@@ -28,7 +28,7 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Message string `json:"message"`
 	}{
-		"Product deleted successfully",
+		"Category deleted successfully",
 	}
 	res.JSON(w, http.StatusOK, data)
 }

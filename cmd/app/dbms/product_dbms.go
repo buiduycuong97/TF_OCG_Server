@@ -9,9 +9,9 @@ import (
 
 func CreateProduct(product *models.Product) (*models.Product, error) {
 	existingProduct := &models.Product{}
-	database.Db.Raw("SELECT * FROM products WHERE handle = ?", product.Handle).Scan(existingProduct)
+	database.Db.Raw("SELECT * FROM products WHERE title = ?", product.Handle).Scan(existingProduct)
 	if existingProduct.Handle == product.Handle {
-		return nil, errors.New("Product handle already exist")
+		return nil, errors.New("Product title already exist")
 	}
 	now := time.Now()
 	product.CreatedAt = now
