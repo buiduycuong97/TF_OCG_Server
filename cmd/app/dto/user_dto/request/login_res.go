@@ -1,4 +1,4 @@
-package user_dto
+package request
 
 type LoginRes struct {
 	UserID       int32  `json:"userID"`

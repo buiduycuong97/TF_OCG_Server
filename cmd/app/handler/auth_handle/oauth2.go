@@ -11,7 +11,7 @@ import (
 	"io"
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
-	dto "tf_ocg/cmd/app/dto/user_dto"
+	"tf_ocg/cmd/app/dto/user_dto/request"
 	"tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
 	"tf_ocg/utils"
@@ -95,7 +95,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	refreshToken, _ := utils.GenerateRefreshToken(user.UserID)
 	user.RefreshToken = refreshToken
 	err = dbms.UpdateUser(&user, user.UserID)
-	loginRes := dto.LoginRes{
+	loginRes := request.LoginRes{
 		UserID:       result.UserID,
 		UserName:     result.UserName,
 		Email:        result.Email,
@@ -109,7 +109,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleForgetPassword(w http.ResponseWriter, r *http.Request) {
-	var input dto.ForgetPasswordReq
+	var input request.ForgetPasswordReq
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		response_api.ERROR(w, http.StatusBadRequest, err)
@@ -145,7 +145,7 @@ func HandleForgetPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func HandleResetPassword(w http.ResponseWriter, r *http.Request) {
-	var input dto.ResetPasswordReq
+	var input request.ResetPasswordReq
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil {
 		response_api.ERROR(w, http.StatusBadRequest, err)

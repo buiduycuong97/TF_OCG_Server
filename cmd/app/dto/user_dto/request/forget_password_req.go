@@ -1,4 +1,4 @@
-package user_dto
+package request
 
 type ForgetPasswordReq struct {
 	Email string `json:"email"`

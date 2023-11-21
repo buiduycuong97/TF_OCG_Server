@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
-	"tf_ocg/cmd/app/dto/user_dto"
+	"tf_ocg/cmd/app/dto/user_dto/response"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
 	"tf_ocg/utils"
@@ -43,7 +43,7 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
-	createUserRes := user_dto.CreateUserRes{
+	createUserRes := response.CreateUserRes{
 		UserID:   result.UserID,
 		UserName: result.UserName,
 		Email:    result.Email,

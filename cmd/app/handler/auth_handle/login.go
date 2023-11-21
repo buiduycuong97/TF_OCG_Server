@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
-	dto "tf_ocg/cmd/app/dto/user_dto"
+	"tf_ocg/cmd/app/dto/user_dto/request"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
 	"tf_ocg/utils"
@@ -14,7 +14,7 @@ import (
 
 func Login(w http.ResponseWriter, r *http.Request) {
 	//read from body
-	var body dto.LoginReq
+	var body request.LoginReq
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		res.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -56,11 +56,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		Name:    "token",
 		Path:    "/",
 		Value:   accessToken,
-		Expires: time.Now().Add(time.Hour * 24),
+		Expires: time.Now().Add(time.Minute * 1),
 	}
 	http.SetCookie(w, cookie)
 
-	loginRes := dto.LoginRes{
+	loginRes := request.LoginRes{
 		UserID:       userRes.UserID,
 		UserName:     userRes.UserName,
 		Email:        userRes.Email,
@@ -70,7 +70,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		RefreshToken: refreshToken,
 	}
 	w.Header().Set("Authorization", "Bearer "+accessToken)
-	w.Header().Set("user", fmt.Sprintf("%+v", loginRes))
+	w.Header().Set("user", fmt.Sprintf("%+v", loginRes)) //test
 	res.JSON(w, http.StatusOK, loginRes)
 
 }
@@ -78,7 +78,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 // login admin
 func LoginAdmin(w http.ResponseWriter, r *http.Request) {
 	//read from body
-	var body dto.LoginReq
+	var body request.LoginReq
 	err := json.NewDecoder(r.Body).Decode(&body)
 	if err != nil {
 		res.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -124,7 +124,7 @@ func LoginAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
-	loginRes := dto.LoginRes{
+	loginRes := request.LoginRes{
 		UserID:       userRes.UserID,
 		UserName:     userRes.UserName,
 		Email:        userRes.Email,

@@ -1,4 +1,4 @@
-package user_dto
+package response
 
 type CreateUserRes struct {
 	UserID   int32  `json:"userID"`
