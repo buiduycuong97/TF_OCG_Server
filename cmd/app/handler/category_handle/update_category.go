@@ -27,7 +27,7 @@ func UpdateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var category models.Category
+	var category models.Categories
 	err = json.Unmarshal(body, &category)
 	if err != nil {
 		res.ERROR(w, http.StatusUnprocessableEntity, err)

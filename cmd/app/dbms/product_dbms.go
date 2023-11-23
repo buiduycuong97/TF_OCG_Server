@@ -9,7 +9,7 @@ import (
 
 func CreateProduct(product *models.Product) (*models.Product, error) {
 	existingProduct := &models.Product{}
-	database.Db.Raw("SELECT * FROM products WHERE title = ?", product.Handle).Scan(existingProduct)
+	database.Db.Raw("SELECT * FROM products WHERE title = ?", product.Title).Scan(existingProduct)
 	if existingProduct.Handle == product.Handle {
 		return nil, errors.New("Product title already exist")
 	}
@@ -37,7 +37,7 @@ func UpdateProduct(updatedProduct *models.Product, id int32) error {
 }
 
 func DeleteProduct(product *models.Product, id int32) error {
-	database.Db.Where("product_id = ?", id).Updates(product)
+	database.Db.Where("product_id = ?", id).Delete(product)
 	return nil
 }
 
@@ -101,4 +101,42 @@ func SearchProduct(searchText string, categoryIDs []int, from string, to string,
 	}
 
 	return products, nil
+}
+
+func UpdateProductQuantity(productID int32, newQuantity int32) error {
+	product := &models.Product{}
+	err := GetProductById(product, productID)
+	if err != nil {
+		return errors.New("Failed to get product")
+	}
+
+	if product.QuantityRemaining < newQuantity {
+		return errors.New("Not enough quantity remaining")
+	}
+
+	product.QuantityRemaining -= newQuantity
+
+	err = UpdateProduct(product, productID)
+	if err != nil {
+		return errors.New("Failed to update product quantity")
+	}
+
+	return nil
+}
+
+func UpdateProductQuantityWithIncrease(productID int32, quantityToIncrease int32) error {
+	product := &models.Product{}
+	err := GetProductById(product, productID)
+	if err != nil {
+		return errors.New("Failed to get product")
+	}
+
+	product.QuantityRemaining += quantityToIncrease
+
+	err = UpdateProduct(product, productID)
+	if err != nil {
+		return errors.New("Failed to update product quantity")
+	}
+
+	return nil
 }

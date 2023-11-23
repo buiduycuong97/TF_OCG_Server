@@ -17,7 +17,7 @@ func GetCategory(w http.ResponseWriter, r *http.Request) {
 		res.ERROR(w, http.StatusBadRequest, err)
 		return
 	}
-	var category models.Category
+	var category models.Categories
 	err = dbms.GetCategoryById(&category, cid32)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)

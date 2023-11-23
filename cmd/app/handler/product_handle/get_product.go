@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
+	"tf_ocg/cmd/app/handler/utils_handle"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
 )
@@ -53,7 +54,7 @@ func GetListProducts(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string]interface{}{
 		"products":   products,
-		"totalPages": calculateTotalPages(totalCount, int32(pageSize)),
+		"totalPages": utils_handle.CalculateTotalPages(totalCount, int32(pageSize)),
 	}
 
 	res.JSON(w, http.StatusOK, response)
@@ -62,9 +63,13 @@ func GetListProducts(w http.ResponseWriter, r *http.Request) {
 func GetListProductByCategoryId(w http.ResponseWriter, r *http.Request) {
 	pageStr := r.URL.Query().Get("page")
 	pageSizeStr := r.URL.Query().Get("pageSize")
-	categoryIDStr := r.URL.Query().Get("categoryID")
+	categoryIDStr := r.URL.Query().Get("categoryId")
 
-	// Kiểm tra xem categoryID có được cung cấp không
+	categoryId, err := strconv.Atoi(categoryIDStr)
+	if err != nil {
+		http.Error(w, "Invalid categoryId", http.StatusBadRequest)
+		return
+	}
 	if categoryIDStr == "" {
 		res.ERROR(w, http.StatusBadRequest, errors.New("categoryID is required"))
 		return
@@ -82,13 +87,7 @@ func GetListProductByCategoryId(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	categoryID, err := strconv.ParseInt(categoryIDStr, 10, 64)
-	if err != nil {
-		res.ERROR(w, http.StatusBadRequest, err)
-		return
-	}
-
-	products, totalCount, err := dbms.GetListProductByCategoryId(int(categoryID), int32(page), int32(pageSize))
+	products, totalCount, err := dbms.GetListProductByCategoryId(categoryId, int32(page), int32(pageSize))
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
@@ -96,16 +95,8 @@ func GetListProductByCategoryId(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string]interface{}{
 		"products":   products,
-		"totalPages": calculateTotalPages(totalCount, int32(pageSize)),
+		"totalPages": utils_handle.CalculateTotalPages(totalCount, int32(pageSize)),
 	}
 
 	res.JSON(w, http.StatusOK, response)
-}
-
-func calculateTotalPages(totalCount int64, pageSize int32) int32 {
-	totalPages := int32(totalCount) / pageSize
-	if int32(totalCount)%pageSize != 0 {
-		totalPages++
-	}
-	return totalPages
 }

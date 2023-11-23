@@ -18,7 +18,7 @@ func DeleteCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var category models.Category
+	var category models.Categories
 	err = dbms.DeleteCategory(&category, cid32)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)

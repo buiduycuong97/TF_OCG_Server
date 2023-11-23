@@ -28,14 +28,12 @@ func connectDB() *gorm.DB {
 		log.Fatal("Lỗi khi tải tệp .env")
 	}
 
-	// Đọc biến môi trường từ tệp .env
 	dbUsername := os.Getenv("DB_USERNAME")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbName := os.Getenv("DB_NAME")
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 
-	// Tạo chuỗi kết nối DSN từ biến môi trường
 	dsn := dbUsername + ":" + dbPassword + "@tcp" + "(" + dbHost + ":" + dbPort + ")/" + dbName + "?" + "parseTime=true&loc=Local"
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})

@@ -26,23 +26,23 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	if product.Title == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte("Title is require"))
+		w.Write([]byte("Title is required"))
 		return
 	}
 
-	var result *models.Product
-	result, err = dbms.CreateProduct(&product)
+	_, err = dbms.CreateProduct(&product)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	createProductRes := response.Product{
-		ProductID:   result.ProductID,
-		Handle:      result.Handle,
-		Title:       result.Title,
-		Description: result.Description,
-		Price:       result.Price,
+		Handle:            product.Handle,
+		Title:             product.Title,
+		Description:       product.Description,
+		Price:             product.Price,
+		CategoryID:        product.CategoryID,
+		QuantityRemaining: product.QuantityRemaining,
 	}
 	res.JSON(w, http.StatusCreated, createProductRes)
 }

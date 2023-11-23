@@ -6,20 +6,20 @@ import (
 	"tf_ocg/proto/models"
 )
 
-func CreateCategory(category *models.Category) (*models.Category, error) {
-	existingCategory := &models.Category{}
-	database.Db.Raw("SELECT * FROM category WHERE name = ?", category.Handle).Scan(existingCategory)
-	if existingCategory.Handle == category.Handle {
+func CreateCategory(categoryCreate *models.Categories) (*models.Categories, error) {
+	existingCategory := &models.Categories{}
+	database.Db.Raw("SELECT * FROM categories WHERE name = ?", categoryCreate.Name).Scan(existingCategory)
+	if existingCategory.Handle == categoryCreate.Handle {
 		return nil, errors.New("Category name already exist")
 	}
-	err := database.Db.Create(category).Error
+	err := database.Db.Create(categoryCreate).Error
 	if err != nil {
 		return nil, err
 	}
-	return category, nil
+	return categoryCreate, nil
 }
 
-func GetCategoryById(category *models.Category, id int32) (err error) {
+func GetCategoryById(category *models.Categories, id int32) (err error) {
 	err = database.Db.Where("category_id = ?", id).First(category).Error
 	if err != nil {
 		return err
@@ -27,12 +27,12 @@ func GetCategoryById(category *models.Category, id int32) (err error) {
 	return nil
 }
 
-func GetListCategory(page int32, pageSize int32) ([]*models.Category, int64, error) {
+func GetListCategory(page int32, pageSize int32) ([]*models.Categories, int64, error) {
 	offset := (int64(page) - 1) * int64(pageSize)
-	categories := []*models.Category{}
+	categories := []*models.Categories{}
 	var totalCount int64
 
-	if err := database.Db.Model(&models.Category{}).Count(&totalCount).Error; err != nil {
+	if err := database.Db.Model(&models.Categories{}).Count(&totalCount).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -44,19 +44,19 @@ func GetListCategory(page int32, pageSize int32) ([]*models.Category, int64, err
 	return categories, totalCount, nil
 }
 
-func UpdateCategory(updatedCategory *models.Category, id int32) error {
+func UpdateCategory(updatedCategory *models.Categories, id int32) error {
 	database.Db.Model(updatedCategory).Where("category_id = ?", id).Updates(updatedCategory)
 	return nil
 }
 
-func DeleteCategory(category *models.Category, id int32) error {
-	database.Db.Where("category_id = ?", id).Updates(category)
+func DeleteCategory(category *models.Categories, id int32) error {
+	database.Db.Where("category_id = ?", id).Delete(category)
 	return nil
 }
 
-func SearchCategory(searchText string, page int32, pageSize int32) ([]*models.Category, error) {
+func SearchCategory(searchText string, page int32, pageSize int32) ([]*models.Categories, error) {
 	offset := (page - 1) * pageSize
-	categories := []*models.Category{}
+	categories := []*models.Categories{}
 
 	query := database.Db
 

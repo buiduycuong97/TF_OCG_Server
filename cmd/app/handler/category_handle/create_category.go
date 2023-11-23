@@ -11,7 +11,7 @@ import (
 )
 
 func CreateCategory(w http.ResponseWriter, r *http.Request) {
-	var category models.Category
+	var category models.Categories
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		res.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -30,7 +30,7 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var result *models.Category
+	var result *models.Categories
 	result, err = dbms.CreateCategory(&category)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
@@ -38,10 +38,9 @@ func CreateCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	createCategoryRes := response.CategoryResponse{
-		CategoryID: result.CategoryID,
-		Name:       result.Name,
-		Handle:     result.Handle,
-		Image:      result.Image,
+		Name:   result.Name,
+		Handle: result.Handle,
+		Image:  result.Image,
 	}
 	res.JSON(w, http.StatusCreated, createCategoryRes)
 }
