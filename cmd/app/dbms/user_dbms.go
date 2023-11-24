@@ -113,3 +113,12 @@ func GetUserByResetToken(resetToken string) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func GetEmailByUserID(userID int32) (string, error) {
+	var user models.User
+	err := database.Db.Select("email").Where("user_id = ?", userID).First(&user).Error
+	if err != nil {
+		return "", err
+	}
+	return user.Email, nil
+}

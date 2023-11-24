@@ -20,3 +20,6 @@ ALTER TABLE users
 
 ALTER TABLE `e-commerce`.`province`
     RENAME TO  `e-commerce`.`provinces` ;
+
+ALTER TABLE review
+    ADD COLUMN approve BOOLEAN;

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"os"
@@ -89,4 +90,25 @@ func GetUserFromToken(tokenString string) (int32, error) {
 	}
 
 	return 0, fmt.Errorf("Failed to get id from token: %v", tokenString)
+}
+
+func GetRoleFromToken(tokenString string) (string, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		if role, ok := claims["role"].(string); ok {
+			return role, nil
+		}
+	}
+
+	return "", errors.New("Failed to get role from token")
 }

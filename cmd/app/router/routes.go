@@ -11,10 +11,12 @@ func InitializeRoutes(server *mux.Router) {
 	categoryRouter := server.PathPrefix("/category").Subrouter()
 	cartRouter := server.PathPrefix("/cart").Subrouter()
 	orderRouter := server.PathPrefix("/order").Subrouter()
+	reviewRouter := server.PathPrefix("/review").Subrouter()
 	SetupUserRoutes(userRouter)
 	SetupAuthRoutes(authRouter)
 	SetupProductRoutes(productRouter)
 	SetupCategoryRoutes(categoryRouter)
 	SetupCartRoutes(cartRouter)
 	SetupOrderRoutes(orderRouter)
+	SetupReviewRoutes(reviewRouter)
 }
