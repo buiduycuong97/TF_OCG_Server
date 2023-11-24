@@ -1,4 +1,4 @@
-package user_dto
+package request
 
 type LoginReq struct {
 	Email    string

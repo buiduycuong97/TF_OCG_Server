@@ -27,7 +27,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request) {
 	tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
 	claims, _ := utils.VerifyToken(tokenString)
 	mapClaims, _ := claims.(jwt.MapClaims)
-	idF, ok := mapClaims["id"].(float64) // get id user
+	idF, ok := mapClaims["id"].(float64)
 	if !ok {
 		return
 	}

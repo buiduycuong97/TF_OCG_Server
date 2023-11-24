@@ -30,8 +30,8 @@ func CreateUser(user *models.User) (*models.User, error) {
 }
 
 // get users
-func GetUsers(User *[]models.User) (err error) {
-	err = database.Db.Find(User).Error
+func GetUsers(user *[]models.User) (err error) {
+	err = database.Db.Find(user).Error
 	if err != nil {
 		return err
 	}
@@ -39,8 +39,8 @@ func GetUsers(User *[]models.User) (err error) {
 }
 
 // get user by id
-func GetUser(User *models.User, id int32) (err error) {
-	err = database.Db.Where("user_id = ?", id).First(User).Error
+func GetUser(user *models.User, id int32) (err error) {
+	err = database.Db.Where("user_id = ?", id).First(user).Error
 	if err != nil {
 		return err
 	}
@@ -48,14 +48,14 @@ func GetUser(User *models.User, id int32) (err error) {
 }
 
 // update user
-func UpdateUser(User *models.User, id int32) (err error) {
-	database.Db.Model(User).Where("user_id = ?", id).Updates(User)
+func UpdateUser(user *models.User, id int32) (err error) {
+	database.Db.Model(user).Where("user_id = ?", id).Updates(user)
 	return nil
 }
 
 // delete user
-func DeleteUser(User *models.User, id int32) (err error) {
-	database.Db.Where("user_id = ?", id).Delete(User)
+func DeleteUser(user *models.User, id int32) (err error) {
+	database.Db.Where("user_id = ?", id).Delete(user)
 	return nil
 }
 
@@ -88,5 +88,19 @@ func LoginAdmin(user *models.User) (userRes *models.User, err error) {
 	} else {
 		return userRes, nil
 	}
+}
 
+func GetUserByEmail(email string) (*models.User, error) {
+	user := &models.User{}
+	err := database.Db.Where("email = ?", email).First(user).Error
+	return user, err
+}
+
+func GetUserByResetToken(resetToken string) (*models.User, error) {
+	var user models.User
+	err := database.Db.Where("reset_token = ?", resetToken).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

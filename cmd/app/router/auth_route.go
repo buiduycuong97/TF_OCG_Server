@@ -13,6 +13,8 @@ func SetupAuthRoutes(r *mux.Router) {
 	r.HandleFunc("/logout", auth.Logout)
 	r.HandleFunc("/login-google", auth.HandleLogin)
 	r.HandleFunc("/callback-google", auth.HandleCallback)
+	r.HandleFunc("/forget-password", auth.HandleForgetPassword).Methods("POST")
+	r.HandleFunc("/reset-password", auth.HandleResetPassword).Methods("POST")
 	//r.HandleFunc("/login-facebook", auth.FacebookProvider.HandleLogin)
 	//r.HandleFunc("/callback-facebook", auth.FacebookProvider.HandleCallback)
 }
