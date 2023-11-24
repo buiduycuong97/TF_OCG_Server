@@ -31,9 +31,19 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Name is require"))
 		return
 	}
+	if user.PhoneNumber == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Phone is require"))
+		return
+	}
 	if !(utils.IsValidEmail(user.Email)) || user.Email == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Email is not valid"))
+		return
+	}
+	if user.Password == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Password is require"))
 		return
 	}
 
@@ -44,11 +54,12 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	createUserRes := response.CreateUserRes{
-		UserID:   result.UserID,
-		UserName: result.UserName,
-		Email:    result.Email,
-		Role:     result.Role,
-		UserType: result.UserType,
+		UserID:      result.UserID,
+		UserName:    result.UserName,
+		Email:       result.Email,
+		PhoneNumber: result.PhoneNumber,
+		Role:        result.Role,
+		UserType:    result.UserType,
 	}
 	res.JSON(w, http.StatusCreated, createUserRes)
 }

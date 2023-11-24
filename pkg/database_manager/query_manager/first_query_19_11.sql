@@ -11,6 +11,7 @@ CREATE TABLE users (
                        role varchar(50),
                        user_type VARCHAR(50),
                        refresh_token varchar(255),
+                       reset_token varchar(255),
                        created_at datetime,
                        updated_at datetime
 );
