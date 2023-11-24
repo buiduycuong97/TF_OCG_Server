@@ -22,7 +22,7 @@ type googleResponse struct {
 
 var (
 	googleOauthConfig = &oauth2.Config{
-		RedirectURL:  "http://localhost:8080/auth/callback-google",
+		RedirectURL:  "http://localhost:8000/auth/callback-google",
 		ClientID:     "275944160808-8b24hbsrsodun2vtd1ubobih7ll1bflm.apps.googleusercontent.com",
 		ClientSecret: "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",
 		Scopes:       []string{"profile", "email"},

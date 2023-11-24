@@ -52,13 +52,20 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// set cookie
-	cookie := &http.Cookie{
-		Name:    "token",
+	cookie1 := &http.Cookie{
+		Name:    "accessToken",
 		Path:    "/",
 		Value:   accessToken,
+		Expires: time.Now().Add(time.Hour * 1),
+	}
+	http.SetCookie(w, cookie1)
+	cookie2 := &http.Cookie{
+		Name:    "refreshToken",
+		Path:    "/",
+		Value:   refreshToken,
 		Expires: time.Now().Add(time.Hour * 24),
 	}
-	http.SetCookie(w, cookie)
+	http.SetCookie(w, cookie2)
 
 	loginRes := dto.LoginRes{
 		UserID:       userRes.UserID,

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
@@ -21,11 +22,11 @@ func Init() {
 	//server.Db.AutoMigrate(&models.User{})
 	server.Router = mux.NewRouter()
 	router.InitializeRoutes(server.Router)
-	server.Run(":8080")
+	server.Run(":8000")
 }
 func (server *Server) Run(addr string) {
 	fmt.Println("Listening to port " + addr)
-	log.Fatal(http.ListenAndServe(addr, server.Router))
+	log.Fatal(http.ListenAndServe(addr, cors.AllowAll().Handler(server.Router)))
 }
 func main() {
 	// init server
