@@ -24,7 +24,7 @@ func CreateProduct(product *models.Product) (*models.Product, error) {
 }
 
 func GetProductById(product *models.Product, id int32) (err error) {
-	err = database.Db.Where("product_id = ?", id).First(product).Error
+	err = database.Db.Where("product_id = ?", id).Find(product).Error
 	if err != nil {
 		return err
 	}

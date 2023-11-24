@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/handler/utils_handle"
 	database "tf_ocg/pkg/database_manager"
@@ -19,9 +20,23 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shippingAddress := r.FormValue("shipping_address")
+	// Lấy thông tin người dùng từ cơ sở dữ liệu
+	user, err := dbms.GetUserByID(userID)
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	shippingAddress := r.FormValue("shippingAddress")
 	if shippingAddress == "" {
-		res.ERROR(w, http.StatusBadRequest, errors.New("Shipping addres5s is required"))
+		res.ERROR(w, http.StatusBadRequest, errors.New("Shipping address is required"))
+		return
+	}
+
+	provinceIDStr := r.FormValue("provinceId")
+	provinceID, err := strconv.Atoi(provinceIDStr)
+	if err != nil {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid province ID format"))
 		return
 	}
 
@@ -36,6 +51,7 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		OrderDate:       time.Now(),
 		ShippingAddress: shippingAddress,
 		Status:          models.Pending,
+		ProvinceID:      int32(provinceID),
 	}
 
 	tx := database.Db.Begin()
@@ -48,6 +64,26 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("Created Order ID:", createdOrder.OrderID)
+
+	// Lấy thông tin về tỉnh từ cơ sở dữ liệu
+	province, err := dbms.GetProvinceByID(newOrder.ProvinceID)
+	if err != nil {
+		tx.Rollback()
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Tạo một map chứa thông tin cần trả về
+	responseData := map[string]interface{}{
+		"message":          "Order created successfully",
+		"user_name":        user.UserName,
+		"phone_number":     user.PhoneNumber,
+		"province_name":    province.ProvinceName,
+		"shipping_fee":     province.ShippingFee,
+		"order_id":         createdOrder.OrderID,
+		"order_date":       createdOrder.OrderDate,
+		"shipping_address": createdOrder.ShippingAddress,
+	}
 
 	for _, cartItem := range cartItems {
 		orderDetail := &models.OrderDetail{
@@ -74,5 +110,5 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	tx.Commit()
 
-	res.JSON(w, http.StatusCreated, map[string]string{"message": "Order created successfully"})
+	res.JSON(w, http.StatusCreated, responseData)
 }

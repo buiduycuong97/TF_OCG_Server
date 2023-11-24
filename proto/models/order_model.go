@@ -18,4 +18,5 @@ type Order struct {
 	OrderDate       time.Time   `json:"orderDate"`
 	ShippingAddress string      `json:"shippingAddress"`
 	Status          OrderStatus `gorm:"default:unpaid" json:"status"`
+	ProvinceID      int32       `json:"provinceId"`
 }

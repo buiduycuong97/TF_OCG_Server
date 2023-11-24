@@ -47,6 +47,15 @@ func GetUser(user *models.User, id int32) (err error) {
 	return nil
 }
 
+func GetUserByID(userID int32) (*models.User, error) {
+	var user models.User
+	err := database.Db.Where("user_id = ?", userID).First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // update user
 func UpdateUser(user *models.User, id int32) (err error) {
 	database.Db.Model(user).Where("user_id = ?", id).Updates(user)

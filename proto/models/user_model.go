@@ -13,6 +13,7 @@ type User struct {
 	Role         string    `gorm:"default:user" json:"role"`
 	RefreshToken string    `json:"refreshToken"`
 	ResetToken   string    `json:"resetToken"`
+	PhoneNumber  string    `json:"phonenumber"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
 }

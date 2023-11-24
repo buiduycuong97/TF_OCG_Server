@@ -2,6 +2,7 @@ package cart_handle
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/dto/cart_dto/response"
@@ -28,6 +29,7 @@ func ViewCartHandler(w http.ResponseWriter, r *http.Request) {
 	for _, cartItem := range cartItems {
 		err := dbms.GetProductById(&product, cartItem.ProductID)
 		if err != nil {
+			fmt.Println("Error getting product:", err)
 			res.ERROR(w, http.StatusInternalServerError, errors.New("Lấy thông tin sản phẩm thất bại"))
 			return
 		}
