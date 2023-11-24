@@ -19,7 +19,6 @@ func AddReviewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Giải mã JSON từ body của request vào struct Review
 	var newReview models.Review
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&newReview)
@@ -28,17 +27,14 @@ func AddReviewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Lấy userID từ request header
 	userID, err := utils_handle.GetUserIDFromRequest(r)
 	if err != nil {
 		res.ERROR(w, http.StatusUnauthorized, errors.New("Invalid token"))
 		return
 	}
 
-	// Gán giá trị UserID từ request header vào struct Review
 	newReview.UserID = userID
 
-	// Nếu chỉ có productID, chỉ trả về danh sách
 	if newReview.Rating == 0 && newReview.Comment == "" {
 		reviews, err := dbms.GetReviewsByProductID(newReview.ProductID)
 		if err != nil {
@@ -49,32 +45,27 @@ func AddReviewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Kiểm tra sensitive trước khi thêm review
 	if isSensitive(newReview.Comment) {
 		sendSensitiveNotification(userID, "Your review has been flagged as sensitive. It will not be published.")
 		res.ERROR(w, http.StatusForbidden, errors.New("Sensitive content detected"))
 		return
 	}
 
-	// Thực hiện thêm review vào cơ sở dữ liệu
 	err = dbms.CreateReview(&newReview)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Lấy danh sách reviews theo ProductID từ cơ sở dữ liệu
 	reviews, err := dbms.GetReviewsByProductID(newReview.ProductID)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Trả về danh sách reviews dưới dạng JSON
 	res.JSON(w, http.StatusOK, reviews)
 }
 
-// isSensitive kiểm tra xem có nội dung nhạy cảm không
 func isSensitive(comment string) bool {
 	isProfane := goaway.IsProfane(comment)
 	log.Println(isProfane)
@@ -106,7 +97,6 @@ func sendSensitiveNotification(userID int32, message string) error {
 	return nil
 }
 
-// getEmailByUserID là một hàm giả sử để lấy địa chỉ email từ UserID
 func getEmailByUserID(userID int32) (string, error) {
 	email, err := dbms.GetEmailByUserID(userID)
 	if err != nil {
