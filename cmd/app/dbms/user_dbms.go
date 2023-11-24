@@ -122,3 +122,23 @@ func GetEmailByUserID(userID int32) (string, error) {
 	}
 	return user.Email, nil
 }
+
+func SearchUser(searchText string, page, pageSize int32) ([]*models.User, error) {
+	offset := (page - 1) * pageSize
+	users := []*models.User{}
+
+	query := database.Db
+
+	if searchText != "" {
+		query = query.Where("user_name LIKE ?", "%"+searchText+"%")
+	}
+
+	query = query.Offset(int(offset)).Limit(int(pageSize))
+
+	err := query.Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
