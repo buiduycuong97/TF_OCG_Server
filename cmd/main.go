@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/rs/cors"
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 	"gorm.io/gorm"
 	"log"
 	"net/http"

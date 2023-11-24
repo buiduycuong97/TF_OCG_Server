@@ -11,7 +11,7 @@ func SetupUserRoutes(r *mux.Router) {
 	authMiddleware := middleware.AuthMiddleware
 	authAdminMiddleware := middleware.AuthAdmin
 
-	r.HandleFunc("", authMiddleware(user.CreateUser)).Methods("POST")
+	r.HandleFunc("", user.CreateUser).Methods("POST")
 	r.HandleFunc("", authAdminMiddleware(user.GetUsers)).Methods("GET")
 	r.HandleFunc("/{id}", authMiddleware(user.GetUser)).Methods("GET")
 	r.HandleFunc("/{id}", authAdminMiddleware(user.UpdateUser)).Methods("PUT")
