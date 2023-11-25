@@ -31,14 +31,42 @@ func GetProductById(product *models.Product, id int32) (err error) {
 	return nil
 }
 
+func GetProductByHandle(product *models.Product, handle string) (err error) {
+	err = database.Db.Where("handle = ?", handle).Find(product).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func UpdateProduct(updatedProduct *models.Product, id int32) error {
 	database.Db.Model(updatedProduct).Where("product_id = ?", id).Updates(updatedProduct)
 	return nil
 }
 
 func DeleteProduct(product *models.Product, id int32) error {
-	database.Db.Where("product_id = ?", id).Delete(product)
-	return nil
+	if err := deleteReviewsByProductID(id); err != nil {
+		return err
+	}
+	if err := deleteCartItemByProductID(id); err != nil {
+		return err
+	}
+	if err := deleteOrderDetailByProductID(id); err != nil {
+		return err
+	}
+	return database.Db.Where("product_id = ?", id).Delete(product).Error
+}
+
+func deleteCartItemByProductID(productID int32) error {
+	return database.Db.Where("product_id = ?", productID).Delete(&models.Cart{}).Error
+}
+
+func deleteReviewsByProductID(productID int32) error {
+	return database.Db.Where("product_id = ?", productID).Delete(&models.Review{}).Error
+}
+
+func deleteOrderDetailByProductID(productID int32) error {
+	return database.Db.Where("product_id = ?", productID).Delete(&models.OrderDetail{}).Error
 }
 
 func GetListProduct(page int32, pageSize int32) ([]*models.Product, int64, error) {

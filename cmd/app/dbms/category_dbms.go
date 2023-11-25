@@ -50,7 +50,17 @@ func UpdateCategory(updatedCategory *models.Categories, id int32) error {
 }
 
 func DeleteCategory(category *models.Categories, id int32) error {
-	database.Db.Where("category_id = ?", id).Delete(category)
+	var products []models.Product
+	database.Db.Where("category_id = ?", id).Find(&products)
+	for _, product := range products {
+		if err := database.Db.Delete(&product).Error; err != nil {
+			return err
+		}
+	}
+	if err := database.Db.Where("category_id = ?", id).Delete(category).Error; err != nil {
+		return err
+	}
+
 	return nil
 }
 
