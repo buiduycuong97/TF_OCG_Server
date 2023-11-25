@@ -63,9 +63,54 @@ func UpdateUser(user *models.User, id int32) (err error) {
 }
 
 // delete user
-func DeleteUser(user *models.User, id int32) (err error) {
-	database.Db.Where("user_id = ?", id).Delete(user)
+func DeleteUser(user *models.User, userID int32) error {
+	if err := DeleteUserCart(userID); err != nil {
+		return err
+	}
+	if err := DeleteUserReviews(userID); err != nil {
+		return err
+	}
+	if err := DeleteUserOrders(userID); err != nil {
+		return err
+	}
+	if err := DeleteUserDiscounts(userID); err != nil {
+		return err
+	}
+	return database.Db.Delete(user, "user_id = ?", userID).Error
+}
+
+func DeleteUserCart(userID int32) error {
+	return database.Db.Where("user_id = ?", userID).Delete(&models.Cart{}).Error
+}
+
+func DeleteUserReviews(userID int32) error {
+	return database.Db.Where("user_id = ?", userID).Delete(&models.Review{}).Error
+}
+
+func DeleteUserOrders(userID int32) error {
+	var orders []models.Order
+	if err := database.Db.Where("user_id = ?", userID).Find(&orders).Error; err != nil {
+		return err
+	}
+
+	for _, order := range orders {
+		if err := DeleteOrder(order.OrderID); err != nil {
+			return err
+		}
+	}
+
 	return nil
+}
+
+func DeleteOrder(orderID int32) error {
+	if err := database.Db.Where("order_id = ?", orderID).Delete(&models.OrderDetail{}).Error; err != nil {
+		return err
+	}
+	return database.Db.Where("order_id = ?", orderID).Delete(&models.Order{}).Error
+}
+
+func DeleteUserDiscounts(userID int32) error {
+	return database.Db.Where("user_id = ?", userID).Delete(&models.UserDiscount{}).Error
 }
 
 // login user

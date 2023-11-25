@@ -19,4 +19,7 @@ type Order struct {
 	ShippingAddress string      `json:"shippingAddress"`
 	Status          OrderStatus `gorm:"default:unpaid" json:"status"`
 	ProvinceID      int32       `json:"provinceId"`
+	TotalQuantity   int32       `json:"totalQuantity"`
+	TotalPrice      float64     `json:"totalPrice"`
+	DiscountAmount  float64     `json:"discountAmount"`
 }

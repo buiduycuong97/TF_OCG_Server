@@ -30,6 +30,18 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 	res.JSON(w, http.StatusOK, product)
 }
 
+func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
+	handle := r.URL.Query().Get("handle")
+	var product models.Product
+	err := dbms.GetProductByHandle(&product, handle)
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	res.JSON(w, http.StatusOK, product)
+}
+
 func GetListProducts(w http.ResponseWriter, r *http.Request) {
 	pageStr := r.URL.Query().Get("page")
 	pageSizeStr := r.URL.Query().Get("pageSize")

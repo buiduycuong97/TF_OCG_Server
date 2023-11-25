@@ -1,3 +1,4 @@
+// Trong package cart_handle hoặc một file tương tự
 package cart_handle
 
 import (
@@ -7,6 +8,7 @@ import (
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/dto/cart_dto/response"
 	"tf_ocg/cmd/app/handler/utils_handle"
+	database "tf_ocg/pkg/database_manager"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
 )
@@ -26,6 +28,19 @@ func ViewCartHandler(w http.ResponseWriter, r *http.Request) {
 
 	var cartResponses []response.CartResponse
 	var product models.Product
+	var totalQuantity int32
+	var totalPrice float64
+
+	discountCode := r.URL.Query().Get("discountCode")
+	var discountAmount float64
+	if discountCode != "" {
+		discountAmount, err = dbms.ApplyDiscountForOrder(database.Db, cartItems, discountCode)
+		if err != nil {
+			res.ERROR(w, http.StatusBadRequest, err)
+			return
+		}
+	}
+
 	for _, cartItem := range cartItems {
 		err := dbms.GetProductById(&product, cartItem.ProductID)
 		if err != nil {
@@ -44,7 +59,28 @@ func ViewCartHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		cartResponses = append(cartResponses, cartResponse)
+		totalQuantity += cartItem.Quantity
+		totalPrice += cartItem.TotalPrice
 	}
 
-	res.JSON(w, http.StatusOK, cartResponses)
+	totalProducts := len(cartResponses)
+
+	summary := map[string]interface{}{
+		"totalProducts": totalProducts,
+		"totalQuantity": totalQuantity,
+		"totalPrice":    totalPrice,
+	}
+
+	if discountCode != "" {
+		totalPrice -= discountAmount
+		summary["totalPrice"] = totalPrice
+		summary["discountAmount"] = discountAmount
+	}
+
+	result := map[string]interface{}{
+		"cartItems": cartResponses,
+		"summary":   summary,
+	}
+
+	res.JSON(w, http.StatusOK, result)
 }
