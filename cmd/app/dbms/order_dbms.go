@@ -63,15 +63,20 @@ func GetOrderStatus(orderID int32) (string, error) {
 	return string(order.Status), nil
 }
 
-func GetOrdersByStatus(status models.OrderStatus) ([]models.Order, error) {
+func GetOrdersByStatus(status models.OrderStatus, page int32, pageSize int32) ([]models.Order, int64, error) {
 	var orders []models.Order
 
-	result := database.Db.Where("status = ?", status).Find(&orders)
+	offset := (page - 1) * pageSize
+
+	result := database.Db.Where("status = ?", status).Offset(int(offset)).Limit(int(pageSize)).Find(&orders)
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, 0, result.Error
 	}
 
-	return orders, nil
+	var totalItem int64
+	database.Db.Model(&models.Order{}).Where("status = ?", status).Count(&totalItem)
+
+	return orders, totalItem, nil
 }
 
 func UpdateOrderTotalValues(db *gorm.DB, orderID int32, totalQuantity int32, totalPrice float64) error {

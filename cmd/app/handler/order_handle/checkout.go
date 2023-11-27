@@ -46,6 +46,11 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(cartItems) == 0 {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Cart is empty, cannot proceed with checkout"))
+		return
+	}
+
 	discountCode := r.FormValue("discountCode")
 	var discountAmount float64
 	if discountCode != "" {
