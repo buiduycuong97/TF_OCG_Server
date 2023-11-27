@@ -103,7 +103,7 @@ func GetListProductByCategoryId(categoryID int, page int32, pageSize int32) ([]*
 	return products, totalCount, nil
 }
 
-func SearchProduct(searchText string, categoryIDs []int, from string, to string, page int32, pageSize int32) ([]*models.Product, error) {
+func SearchProduct(searchText string, categories []string, from string, to string, page int32, pageSize int32, typeSort string, fieldSort string) ([]*models.Product, error) {
 	offset := (page - 1) * pageSize
 	products := []*models.Product{}
 
@@ -113,12 +113,17 @@ func SearchProduct(searchText string, categoryIDs []int, from string, to string,
 		query = query.Where("title LIKE ?", "%"+searchText+"%")
 	}
 
-	if len(categoryIDs) > 0 {
-		query = query.Where("category_id IN (?)", categoryIDs)
+	if len(categories) > 0 {
+		query = query.Joins("JOIN categories ON products.category_id = categories.category_id").
+			Where("categories.handle IN (?)", categories)
 	}
 
 	if from != "" && to != "" {
 		query = query.Where("price BETWEEN ? AND ?", from, to)
+	}
+
+	if fieldSort != "" && typeSort != "" {
+		query = query.Order(fieldSort + " " + typeSort)
 	}
 
 	query = query.Offset(int(offset)).Limit(int(pageSize))
