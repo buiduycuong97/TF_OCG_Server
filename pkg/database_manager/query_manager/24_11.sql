@@ -12,7 +12,7 @@ DROP COLUMN `approve`;
 ALTER TABLE discount
     ADD COLUMN available_quantity INT DEFAULT 0;
 
-ALTER TABLE Orders
+ALTER TABLE orders
     ADD COLUMN total_quantity INT,
 ADD COLUMN total_price FLOAT,
 ADD COLUMN discount_amount FLOAT;
