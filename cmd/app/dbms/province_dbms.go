@@ -13,3 +13,11 @@ func GetProvinceByID(provinceID int32) (*models.Province, error) {
 	}
 	return &province, nil
 }
+
+func GetAllProvince(province *[]models.Province) (err error) {
+	err = database_manager.Db.Order("province_name asc").Find(province).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
