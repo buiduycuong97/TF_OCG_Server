@@ -80,7 +80,7 @@ CREATE TABLE review (
                         title text,
                         comment text,
                         status varchar(50),
-                        FOREIGN KEY (user_id) REFERENCES Users(user_id),
+                        FOREIGN KEY (user_id) REFERENCES users(user_id),
                         FOREIGN KEY (product_id) REFERENCES product(product_id)
 );
 
@@ -108,7 +108,7 @@ CREATE TABLE order_discount (
                                 order_id INT,
                                 discount_id INT,
                                 FOREIGN KEY (order_id) REFERENCES orders(order_id),
-                                FOREIGN KEY (discount_id) REFERENCES Discount(discount_id)
+                                FOREIGN KEY (discount_id) REFERENCES discount(discount_id)
 );
 
 -- Tạo bảng UserDiscount

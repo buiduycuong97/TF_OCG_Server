@@ -2,17 +2,15 @@ package product_handle
 
 import (
 	"net/http"
-	"sort"
 	"strconv"
 	"strings"
 	"tf_ocg/cmd/app/dbms"
 	res "tf_ocg/pkg/response_api"
-	"tf_ocg/proto/models"
 )
 
 func SearchProducts(w http.ResponseWriter, r *http.Request) {
 	searchText := r.URL.Query().Get("searchText")
-	categoryIDsStr := r.URL.Query().Get("categoryIDs")
+	categoryStr := r.URL.Query().Get("category")
 	pageStr := r.URL.Query().Get("page")
 	pageSizeStr := r.URL.Query().Get("pageSize")
 	priceFrom := r.URL.Query().Get("priceFrom")
@@ -20,17 +18,9 @@ func SearchProducts(w http.ResponseWriter, r *http.Request) {
 	typeSort := r.URL.Query().Get("typeSort")
 	fieldSort := r.URL.Query().Get("fieldSort")
 
-	var categoryIDs []int
-	if categoryIDsStr != "" {
-		categoryIDStrArr := strings.Split(categoryIDsStr, ",")
-		for _, idStr := range categoryIDStrArr {
-			id, err := strconv.Atoi(idStr)
-			if err != nil {
-				res.ERROR(w, http.StatusBadRequest, err)
-				return
-			}
-			categoryIDs = append(categoryIDs, id)
-		}
+	var categories []string
+	if categoryStr != "" {
+		categories = strings.Split(categoryStr, ",")
 	}
 
 	page, err := strconv.ParseInt(pageStr, 10, 32)
@@ -43,39 +33,17 @@ func SearchProducts(w http.ResponseWriter, r *http.Request) {
 		pageSize = 10
 	}
 
-	products, err := dbms.SearchProduct(searchText, categoryIDs, priceFrom, priceTo, int32(page), int32(pageSize))
+	products, totalItems, err := dbms.SearchProduct(searchText, categories, priceFrom, priceTo, int32(page), int32(pageSize), typeSort, fieldSort)
 
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	SortProducts(products, typeSort, fieldSort)
-
-	res.JSON(w, http.StatusOK, products)
-}
-
-func SortProducts(products []*models.Product, typeSort, fieldSort string) {
-	switch fieldSort {
-	case "title":
-		if typeSort == "asc" {
-			sort.Slice(products, func(i, j int) bool {
-				return products[i].Title < products[j].Title
-			})
-		} else if typeSort == "desc" {
-			sort.Slice(products, func(i, j int) bool {
-				return products[i].Title > products[j].Title
-			})
-		}
-	case "price":
-		if typeSort == "asc" {
-			sort.Slice(products, func(i, j int) bool {
-				return products[i].Price < products[j].Price
-			})
-		} else if typeSort == "desc" {
-			sort.Slice(products, func(i, j int) bool {
-				return products[i].Price > products[j].Price
-			})
-		}
+	response := map[string]interface{}{
+		"products":   products,
+		"totalItems": totalItems,
 	}
+
+	res.JSON(w, http.StatusOK, response)
 }

@@ -1,3 +1,4 @@
+// Trong package order_handle hoặc một file tương tự
 package order_handle
 
 import (
@@ -20,7 +21,6 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Lấy thông tin người dùng từ cơ sở dữ liệu
 	user, err := dbms.GetUserByID(userID)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
@@ -46,12 +46,44 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	discountCode := r.FormValue("discountCode")
+	var discountAmount float64
+	if discountCode != "" {
+		discount, err := dbms.GetDiscountByCode(database.Db, discountCode)
+
+		usedDiscount, err := dbms.CheckUserUsedDiscount(userID, discount.DiscountID)
+		if err != nil {
+			res.ERROR(w, http.StatusInternalServerError, fmt.Errorf("Failed to check if user used discount: %v", err))
+			return
+		}
+
+		if !usedDiscount {
+			res.ERROR(w, http.StatusBadRequest, errors.New("Discount code has already been used by this user"))
+			return
+		}
+
+		discountAmount, err = dbms.ApplyDiscountForOrder(database.Db, cartItems, discountCode)
+		if err != nil {
+			res.ERROR(w, http.StatusBadRequest, err)
+			return
+		}
+
+		err = dbms.MarkDiscountAsUsed(userID, discount.DiscountID)
+		if err != nil {
+			res.ERROR(w, http.StatusInternalServerError, fmt.Errorf("Failed to mark discount as used: %v", err))
+			return
+		}
+	}
+
 	newOrder := models.Order{
 		UserID:          userID,
 		OrderDate:       time.Now(),
 		ShippingAddress: shippingAddress,
 		Status:          models.Pending,
 		ProvinceID:      int32(provinceID),
+		TotalQuantity:   0,
+		TotalPrice:      0.0,
+		DiscountAmount:  discountAmount,
 	}
 
 	tx := database.Db.Begin()
@@ -65,24 +97,11 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Println("Created Order ID:", createdOrder.OrderID)
 
-	// Lấy thông tin về tỉnh từ cơ sở dữ liệu
 	province, err := dbms.GetProvinceByID(newOrder.ProvinceID)
 	if err != nil {
 		tx.Rollback()
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
-	}
-
-	// Tạo một map chứa thông tin cần trả về
-	responseData := map[string]interface{}{
-		"message":          "Order created successfully",
-		"user_name":        user.UserName,
-		"phone_number":     user.PhoneNumber,
-		"province_name":    province.ProvinceName,
-		"shipping_fee":     province.ShippingFee,
-		"order_id":         createdOrder.OrderID,
-		"order_date":       createdOrder.OrderDate,
-		"shipping_address": createdOrder.ShippingAddress,
 	}
 
 	for _, cartItem := range cartItems {
@@ -99,7 +118,12 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 			res.ERROR(w, http.StatusInternalServerError, err)
 			return
 		}
+
+		newOrder.TotalQuantity += cartItem.Quantity
+		newOrder.TotalPrice += cartItem.TotalPrice
 	}
+
+	newOrder.TotalPrice -= newOrder.DiscountAmount
 
 	err = dbms.ClearCart(tx, userID)
 	if err != nil {
@@ -108,7 +132,28 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = dbms.UpdateOrderTotalValues(tx, createdOrder.OrderID, newOrder.TotalQuantity, newOrder.TotalPrice)
+	if err != nil {
+		tx.Rollback()
+		res.ERROR(w, http.StatusInternalServerError, fmt.Errorf("Failed to update order values: %v", err))
+		return
+	}
+
 	tx.Commit()
+
+	responseData := map[string]interface{}{
+		"message":          "Order created successfully",
+		"user_name":        user.UserName,
+		"phone_number":     user.PhoneNumber,
+		"province_name":    province.ProvinceName,
+		"shipping_fee":     province.ShippingFee,
+		"order_id":         createdOrder.OrderID,
+		"order_date":       createdOrder.OrderDate,
+		"shipping_address": createdOrder.ShippingAddress,
+		"total_quantity":   newOrder.TotalQuantity,
+		"total_price":      newOrder.TotalPrice,
+		"discount_amount":  newOrder.DiscountAmount,
+	}
 
 	res.JSON(w, http.StatusCreated, responseData)
 }
