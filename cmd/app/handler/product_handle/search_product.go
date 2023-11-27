@@ -33,12 +33,17 @@ func SearchProducts(w http.ResponseWriter, r *http.Request) {
 		pageSize = 10
 	}
 
-	products, err := dbms.SearchProduct(searchText, categories, priceFrom, priceTo, int32(page), int32(pageSize), typeSort, fieldSort)
+	products, totalItems, err := dbms.SearchProduct(searchText, categories, priceFrom, priceTo, int32(page), int32(pageSize), typeSort, fieldSort)
 
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	res.JSON(w, http.StatusOK, products)
+	response := map[string]interface{}{
+		"products":   products,
+		"totalItems": totalItems,
+	}
+
+	res.JSON(w, http.StatusOK, response)
 }

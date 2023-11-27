@@ -103,11 +103,12 @@ func GetListProductByCategoryId(categoryID int, page int32, pageSize int32) ([]*
 	return products, totalCount, nil
 }
 
-func SearchProduct(searchText string, categories []string, from string, to string, page int32, pageSize int32, typeSort string, fieldSort string) ([]*models.Product, error) {
+func SearchProduct(searchText string, categories []string, from string, to string, page int32, pageSize int32, typeSort string, fieldSort string) ([]*models.Product, int64, error) {
 	offset := (page - 1) * pageSize
 	products := []*models.Product{}
+	var totalCount int64
 
-	query := database.Db
+	query := database.Db.Model(&models.Product{})
 
 	if searchText != "" {
 		query = query.Where("title LIKE ?", "%"+searchText+"%")
@@ -122,6 +123,10 @@ func SearchProduct(searchText string, categories []string, from string, to strin
 		query = query.Where("price BETWEEN ? AND ?", from, to)
 	}
 
+	if err := query.Find(&[]*models.Product{}).Count(&totalCount).Error; err != nil {
+		return nil, 0, err
+	}
+
 	if fieldSort != "" && typeSort != "" {
 		query = query.Order(fieldSort + " " + typeSort)
 	}
@@ -130,10 +135,10 @@ func SearchProduct(searchText string, categories []string, from string, to strin
 
 	err := query.Find(&products).Error
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return products, nil
+	return products, totalCount, nil
 }
 
 func UpdateProductQuantity(productID int32, newQuantity int32) error {
