@@ -13,6 +13,10 @@ func InitializeRoutes(server *mux.Router) {
 	orderRouter := server.PathPrefix("/order").Subrouter()
 	reviewRouter := server.PathPrefix("/review").Subrouter()
 	discountRouter := server.PathPrefix("/discount").Subrouter()
+	variantRouter := server.PathPrefix("/variant").Subrouter()
+	optionProductRouter := server.PathPrefix("/option-product").Subrouter()
+	optionValueRouter := server.PathPrefix("/option-value").Subrouter()
+
 	SetupUserRoutes(userRouter)
 	SetupAuthRoutes(authRouter)
 	SetupProductRoutes(productRouter)
@@ -21,4 +25,7 @@ func InitializeRoutes(server *mux.Router) {
 	SetupOrderRoutes(orderRouter)
 	SetupReviewRoutes(reviewRouter)
 	SetupDiscountRoutes(discountRouter)
+	SetupVariantRoutes(variantRouter)
+	SetupOptionProductRoutes(optionProductRouter)
+	SetupOptionValueRoutes(optionValueRouter)
 }
