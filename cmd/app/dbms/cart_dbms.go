@@ -80,23 +80,35 @@ func GetCartByUserID(userID int32) ([]models.Cart, error) {
 	return cartItems, nil
 }
 
-func UpdateCartItem(userID int32, productID, quantity int) error {
-
-	cartItem, err := GetCartItem(userID, productID)
+func UpdateCartItem(userID, productID, quantity int) error {
+	cartItem, err := GetCartItem(int32(userID), productID)
 	if err != nil {
 		return errors.New("Failed to get cart item")
 	}
 
-	quantityInt32 := int32(quantity)
-
-	cartItem.Quantity = quantityInt32
-	cartItem.TotalPrice = float64(quantityInt32)
-	err = UpdateCart(cartItem, cartItem.CartID)
+	product, err := GetProduct(productID)
 	if err != nil {
+		return errors.New("Failed to get product details")
+	}
+
+	cartItem.Quantity = int32(quantity)
+
+	cartItem.TotalPrice = float64(quantity) * product.Price
+
+	if err := UpdateCart(cartItem, cartItem.CartID); err != nil {
 		return errors.New("Failed to update cart item")
 	}
 
 	return nil
+}
+
+func GetProduct(productID int) (*models.Product, error) {
+	product := &models.Product{}
+	err := database_manager.Db.Where("product_id = ?", productID).First(product).Error
+	if err != nil {
+		return nil, err
+	}
+	return product, nil
 }
 
 func UpdateCart(cart *models.Cart, cartID int32) error {

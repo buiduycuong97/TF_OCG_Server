@@ -10,6 +10,6 @@ func SetupCartRoutes(r *mux.Router) {
 	authMiddleware := middleware.AuthMiddleware
 	r.HandleFunc("/add-to-cart", authMiddleware(cart.AddToCartHandler)).Methods("POST")
 	r.HandleFunc("/view-cart", authMiddleware(cart.ViewCartHandler)).Methods("GET")
-	r.HandleFunc("/remove-cart-item/{product_id}", authMiddleware(cart.RemoveCartItemHandler)).Methods("DELETE")
-	r.HandleFunc("/update-cart-item/{product_id}", authMiddleware(cart.UpdateCartItemHandler)).Methods("PUT")
+	r.HandleFunc("/remove-cart-item/{productId}", authMiddleware(cart.RemoveCartItemHandler)).Methods("DELETE")
+	r.HandleFunc("/update-cart-item/{productId}", authMiddleware(cart.UpdateCartItemHandler)).Methods("PUT")
 }

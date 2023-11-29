@@ -18,7 +18,7 @@ func RemoveCartItemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vars := mux.Vars(r)
-	productID, err := strconv.Atoi(vars["product_id"])
+	productID, err := strconv.Atoi(vars["productId"])
 	if err != nil {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid product ID"))
 		return

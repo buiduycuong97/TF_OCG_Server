@@ -2,6 +2,7 @@ package dbms
 
 import (
 	"errors"
+	"gorm.io/gorm"
 	database "tf_ocg/pkg/database_manager"
 	"tf_ocg/proto/models"
 	"time"
@@ -27,6 +28,17 @@ func CreateDiscount(discount *models.Discount) (*models.Discount, error) {
 func GetDiscountByID(discount *models.Discount, id int32) (err error) {
 	err = database.Db.Where("discount_id = ?", id).Find(discount).Error
 	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetDiscountByDiscountCode(discount *models.Discount, code string) (err error) {
+	err = database.Db.Where("discount_code = ?", code).Find(discount).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return errors.New("Invalid discount code")
+		}
 		return err
 	}
 	return nil

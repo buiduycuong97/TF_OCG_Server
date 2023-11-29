@@ -11,6 +11,7 @@ func SetupDiscountRoutes(r *mux.Router) {
 	authAdminMiddleware := middleware.AuthAdmin
 
 	r.HandleFunc("", authAdminMiddleware(discount.CreateDiscount)).Methods("POST")
+	r.HandleFunc("/get-discount/get-by-code", discount.GetDiscountByDiscountCode).Methods("GET")
 	r.HandleFunc("", authMiddleware(discount.GetAllDiscounts)).Methods("GET")
 	r.HandleFunc("/{id}", authMiddleware(discount.GetDiscountByID)).Methods("GET")
 	r.HandleFunc("/{id}", authAdminMiddleware(discount.UpdateDiscount)).Methods("PUT")

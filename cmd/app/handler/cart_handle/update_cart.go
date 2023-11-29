@@ -18,7 +18,7 @@ func UpdateCartItemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vars := mux.Vars(r)
-	productID, err := strconv.Atoi(vars["product_id"])
+	productID, err := strconv.Atoi(vars["productId"])
 	if err != nil {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid product ID"))
 		return
@@ -29,7 +29,7 @@ func UpdateCartItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = dbms.UpdateCartItem(userID, productID, quantity)
+	err = dbms.UpdateCartItem(int(userID), productID, quantity)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, errors.New("Failed to update cart"))
 		return

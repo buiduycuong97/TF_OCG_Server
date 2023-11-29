@@ -14,7 +14,13 @@ func GetUserIDFromRequest(r *http.Request) (int32, error) {
 		return 0, errors.New("Missing Authorization header")
 	}
 
-	tokenString := strings.Split(authHeader, " ")[1]
+	parts := strings.Split(authHeader, " ")
+
+	if len(parts) < 2 {
+		return 0, errors.New("Invalid Authorization header format")
+	}
+
+	tokenString := parts[1]
 
 	userID, err := utils.GetUserFromToken(tokenString)
 	if err != nil {

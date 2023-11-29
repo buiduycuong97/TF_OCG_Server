@@ -27,7 +27,6 @@ func ViewCartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var cartResponses []response.CartResponse
-	var product models.Product
 	var totalQuantity int32
 	var totalPrice float64
 
@@ -42,6 +41,8 @@ func ViewCartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, cartItem := range cartItems {
+		var product models.Product // Tạo biến mới cho mỗi sản phẩm
+
 		err := dbms.GetProductById(&product, cartItem.ProductID)
 		if err != nil {
 			fmt.Println("Error getting product:", err)
@@ -55,7 +56,7 @@ func ViewCartHandler(w http.ResponseWriter, r *http.Request) {
 			ProductID:     cartItem.ProductID,
 			Quantity:      cartItem.Quantity,
 			TotalPrice:    cartItem.TotalPrice,
-			ProductDetail: product,
+			ProductDetail: product, // Sử dụng biến product mới tạo
 		}
 
 		cartResponses = append(cartResponses, cartResponse)

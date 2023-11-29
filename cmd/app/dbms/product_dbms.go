@@ -178,3 +178,9 @@ func UpdateProductQuantityWithIncrease(productID int32, quantityToIncrease int32
 
 	return nil
 }
+
+func GetProductByID(productID int32) (models.Product, error) {
+	var product models.Product
+	err := database.Db.First(&product, productID).Error
+	return product, err
+}

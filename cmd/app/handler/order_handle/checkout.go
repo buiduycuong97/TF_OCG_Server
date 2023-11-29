@@ -2,10 +2,11 @@
 package order_handle
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
-	"strconv"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/handler/utils_handle"
 	database "tf_ocg/pkg/database_manager"
@@ -27,18 +28,37 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shippingAddress := r.FormValue("shippingAddress")
-	if shippingAddress == "" {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		res.ERROR(w, http.StatusBadRequest, fmt.Errorf("Failed to read request body: %v", err))
+		return
+	}
+
+	// Khai báo một biến để giải mã JSON
+	var requestData map[string]interface{}
+
+	// Giải mã dữ liệu JSON vào biến requestData
+	err = json.Unmarshal(body, &requestData)
+	if err != nil {
+		res.ERROR(w, http.StatusBadRequest, fmt.Errorf("Failed to unmarshal JSON: %v", err))
+		return
+	}
+
+	// Kiểm tra xem requestData có chứa các trường cần thiết không
+	shippingAddress, ok := requestData["shippingAddress"].(string)
+	if !ok || shippingAddress == "" {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Shipping address is required"))
 		return
 	}
 
-	provinceIDStr := r.FormValue("provinceId")
-	provinceID, err := strconv.Atoi(provinceIDStr)
-	if err != nil {
-		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid province ID format"))
+	provinceID, ok := requestData["provinceId"].(float64)
+	if !ok {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Province ID is required"))
 		return
 	}
+
+	// Chuyển đổi giá trị provinceID thành int32
+	convertedProvinceID := int32(provinceID)
 
 	cartItems, err := dbms.GetCartByUserID(userID)
 	if err != nil {
@@ -51,33 +71,34 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	discountCode := r.FormValue("discountCode")
-	var discountAmount float64
-	if discountCode != "" {
-		discount, err := dbms.GetDiscountByCode(database.Db, discountCode)
+	//Thêm trường totalQuantity vào requestData
+	totalQuantity, ok := requestData["totalQuantity"].(float64)
+	if !ok {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Total quantity is required"))
+		return
+	}
 
-		usedDiscount, err := dbms.CheckUserUsedDiscount(userID, discount.DiscountID)
-		if err != nil {
-			res.ERROR(w, http.StatusInternalServerError, fmt.Errorf("Failed to check if user used discount: %v", err))
-			return
-		}
+	convertedTotalQuantity := int32(totalQuantity)
 
-		if !usedDiscount {
-			res.ERROR(w, http.StatusBadRequest, errors.New("Discount code has already been used by this user"))
-			return
-		}
+	// Thêm trường totalPrice vào requestData
+	totalPrice, ok := requestData["totalPrice"].(float64)
+	if !ok {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Total price is required"))
+		return
+	}
 
-		discountAmount, err = dbms.ApplyDiscountForOrder(database.Db, cartItems, discountCode)
-		if err != nil {
-			res.ERROR(w, http.StatusBadRequest, err)
-			return
-		}
+	// Thêm trường grandTotal vào requestData
+	grandTotal, ok := requestData["grandTotal"].(float64)
+	if !ok {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Grand total is required"))
+		return
+	}
 
-		err = dbms.MarkDiscountAsUsed(userID, discount.DiscountID)
-		if err != nil {
-			res.ERROR(w, http.StatusInternalServerError, fmt.Errorf("Failed to mark discount as used: %v", err))
-			return
-		}
+	// Thêm trường discountAmount vào requestData
+	discountAmount, ok := requestData["discountAmount"].(float64)
+	if !ok {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Discount amount is required"))
+		return
 	}
 
 	newOrder := models.Order{
@@ -85,9 +106,10 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		OrderDate:       time.Now(),
 		ShippingAddress: shippingAddress,
 		Status:          models.Pending,
-		ProvinceID:      int32(provinceID),
-		TotalQuantity:   0,
-		TotalPrice:      0.0,
+		ProvinceID:      convertedProvinceID,
+		TotalQuantity:   convertedTotalQuantity,
+		TotalPrice:      totalPrice,
+		GrandTotal:      grandTotal,
 		DiscountAmount:  discountAmount,
 	}
 
@@ -123,9 +145,6 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 			res.ERROR(w, http.StatusInternalServerError, err)
 			return
 		}
-
-		newOrder.TotalQuantity += cartItem.Quantity
-		newOrder.TotalPrice += cartItem.TotalPrice
 	}
 
 	newOrder.TotalPrice -= newOrder.DiscountAmount

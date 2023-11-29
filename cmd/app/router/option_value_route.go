@@ -10,5 +10,4 @@ func SetupOptionValueRoutes(r *mux.Router) {
 	//authAdminMiddleware := middleware.AuthAdmin
 
 	r.HandleFunc("", optionValue.CreateOptionValue).Methods("POST")
-	r.HandleFunc("/get-by/{id}", optionValue.GetOptionValueByOptionProductId).Methods("GET")
 }

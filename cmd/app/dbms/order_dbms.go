@@ -133,3 +133,13 @@ func GetDiscountByCode(db *gorm.DB, discountCode string) (models.Discount, error
 	}
 	return discount, nil
 }
+
+func GetOrderByID(orderID int32) (*models.Order, error) {
+	var order models.Order
+	result := database.Db.First(&order, orderID)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return &order, nil
+}
