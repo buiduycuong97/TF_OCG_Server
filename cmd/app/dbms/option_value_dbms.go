@@ -36,3 +36,13 @@ func GetOptionValueByOptionProductId(optionProductId int32) ([]*models.OptionVal
 	}
 	return optionValues, nil
 }
+
+func GetOptionValueById(optionValue *models.OptionValue, optionValueID int32) error {
+	result := database.Db.First(optionValue, optionValueID)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	return nil
+}

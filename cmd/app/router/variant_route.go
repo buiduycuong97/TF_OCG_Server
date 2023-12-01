@@ -9,4 +9,6 @@ import (
 func SetupVariantRoutes(r *mux.Router) {
 	authMiddleware := middleware.AuthMiddleware
 	r.HandleFunc("/add-variant", authMiddleware(variant.CreateVariantHandler)).Methods("POST")
+	r.HandleFunc("/get-variant-id", authMiddleware(variant.GetVariantIdByOption)).Methods("GET")
+	r.HandleFunc("/update-product-quantity/{id}", authMiddleware(variant.UpdateVariantQuantityHandler)).Methods("PUT")
 }

@@ -111,7 +111,7 @@ func viewOrdersByStatus(w http.ResponseWriter, r *http.Request, status models.Or
 		for _, orderDetail := range orderDetails {
 			orderDetailResponse := order_detail_response.OrderDetailResponse{
 				OrderDetailID: orderDetail.OrderDetailID,
-				ProductID:     orderDetail.ProductID,
+				VariantID:     orderDetail.VariantID,
 				Quantity:      orderDetail.Quantity,
 				Price:         orderDetail.Price,
 			}

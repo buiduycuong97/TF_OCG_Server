@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/dto/cart_dto/response"
+	variantresponse "tf_ocg/cmd/app/dto/variant_dto/response"
 	"tf_ocg/cmd/app/handler/utils_handle"
 	database "tf_ocg/pkg/database_manager"
 	res "tf_ocg/pkg/response_api"
@@ -41,27 +42,89 @@ func ViewCartHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, cartItem := range cartItems {
-		var product models.Product // Tạo biến mới cho mỗi sản phẩm
+		var variant models.Variant
+		var product models.Product
+		var option1 models.OptionValue
+		var option2 models.OptionValue
 
-		err := dbms.GetProductById(&product, cartItem.ProductID)
+		// Lấy thông tin biến thể
+		err := dbms.GetVariantById(&variant, cartItem.VariantID)
+		if err != nil {
+			fmt.Println("Error getting variant:", err)
+			res.ERROR(w, http.StatusInternalServerError, errors.New("Lấy thông tin biến thể thất bại"))
+			return
+		}
+
+		// Lấy thông tin sản phẩm từ ProductID trong biến thể
+		err = dbms.GetProductById(&product, variant.ProductID)
 		if err != nil {
 			fmt.Println("Error getting product:", err)
 			res.ERROR(w, http.StatusInternalServerError, errors.New("Lấy thông tin sản phẩm thất bại"))
 			return
 		}
 
+		if variant.OptionValue1 != 0 {
+			err = dbms.GetOptionValueById(&option1, variant.OptionValue1)
+			if err != nil {
+				fmt.Println("Error getting option 1:", err)
+				res.ERROR(w, http.StatusInternalServerError, errors.New("Lấy thông tin option 1 thất bại"))
+				return
+			}
+		}
+
+		if variant.OptionValue2 != 0 {
+			err = dbms.GetOptionValueById(&option2, variant.OptionValue2)
+			if err != nil {
+				fmt.Println("Error getting option 2:", err)
+				res.ERROR(w, http.StatusInternalServerError, errors.New("Lấy thông tin option 2 thất bại"))
+				return
+			}
+		}
+
+		// Sử dụng thông tin biến thể để tính toán quantity và giá
+		effectiveQuantity := cartItem.Quantity
+		effectivePrice := float64(effectiveQuantity) * float64(variant.Price)
+
 		cartResponse := response.CartResponse{
-			CartID:        cartItem.CartID,
-			UserID:        cartItem.UserID,
-			ProductID:     cartItem.ProductID,
-			Quantity:      cartItem.Quantity,
-			TotalPrice:    cartItem.TotalPrice,
-			ProductDetail: product, // Sử dụng biến product mới tạo
+			CartID:     cartItem.CartID,
+			UserID:     cartItem.UserID,
+			ProductID:  variant.ProductID,
+			VariantID:  cartItem.VariantID,
+			Quantity:   effectiveQuantity,
+			TotalPrice: effectivePrice,
+			ProductDetail: models.Product{
+				ProductID:   product.ProductID,
+				Handle:      product.Handle,
+				Title:       product.Title,
+				Description: product.Description,
+				Price:       product.Price,
+				CategoryID:  product.CategoryID,
+				Image:       product.Image,
+				CreatedAt:   product.CreatedAt,
+				UpdatedAt:   product.UpdatedAt,
+			},
+			VariantDetail: variantresponse.VariantDetail{
+				VariantID:    variant.VariantID,
+				ProductID:    variant.ProductID,
+				Title:        variant.Title,
+				Price:        variant.Price,
+				ComparePrice: variant.ComparePrice,
+				CountInStock: variant.CountInStock,
+				Image:        variant.Image,
+				OptionValue1: models.OptionValue{
+					OptionValueID: option1.OptionValueID,
+					Value:         option1.Value,
+				},
+				OptionValue2: models.OptionValue{
+					OptionValueID: option2.OptionValueID,
+					Value:         option2.Value,
+				},
+			},
 		}
 
 		cartResponses = append(cartResponses, cartResponse)
-		totalQuantity += cartItem.Quantity
-		totalPrice += cartItem.TotalPrice
+		totalQuantity += effectiveQuantity
+		totalPrice += effectivePrice
 	}
 
 	totalProducts := len(cartResponses)

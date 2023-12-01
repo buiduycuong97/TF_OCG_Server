@@ -18,13 +18,13 @@ func RemoveCartItemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vars := mux.Vars(r)
-	productID, err := strconv.Atoi(vars["productId"])
+	variantID, err := strconv.Atoi(vars["variantId"])
 	if err != nil {
-		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid product ID"))
+		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid variant ID"))
 		return
 	}
 
-	err = dbms.RemoveCartItem(userID, productID)
+	err = dbms.RemoveCartItem(userID, variantID)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, errors.New("Failed to remove item from cart"))
 		return

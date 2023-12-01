@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/handler/utils_handle"
+	"tf_ocg/cmd/app/handler/variant_handle"
 	database "tf_ocg/pkg/database_manager"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
@@ -134,7 +135,7 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	for _, cartItem := range cartItems {
 		orderDetail := &models.OrderDetail{
 			OrderID:   createdOrder.OrderID,
-			ProductID: cartItem.ProductID,
+			VariantID: cartItem.VariantID,
 			Quantity:  cartItem.Quantity,
 			Price:     cartItem.TotalPrice,
 		}
@@ -164,6 +165,14 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tx.Commit()
+
+	// Gọi hàm cập nhật số lượng trong kho của biến thể sau khi checkout thành công
+	for _, cartItem := range cartItems {
+		err := variant_handle.UpdateVariantCountInStock(cartItem.VariantID, cartItem.Quantity)
+		if err != nil {
+			// Xử lý lỗi nếu cần
+		}
+	}
 
 	responseData := map[string]interface{}{
 		"message":          "Order created successfully",

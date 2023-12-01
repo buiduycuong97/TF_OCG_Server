@@ -42,38 +42,38 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	productResponse := response.ProductResponseUpdate{
-		ProductID:         product.ProductID,
-		Handle:            product.Handle,
-		Title:             product.Title,
-		Description:       product.Description,
-		Price:             product.Price,
-		CategoryID:        product.CategoryID,
-		QuantityRemaining: product.QuantityRemaining,
-		UpdatedAt:         product.UpdatedAt,
+		ProductID:   product.ProductID,
+		Handle:      product.Handle,
+		Title:       product.Title,
+		Description: product.Description,
+		Price:       product.Price,
+		CategoryID:  product.CategoryID,
+		UpdatedAt:   product.UpdatedAt,
 	}
 
 	res.JSON(w, http.StatusOK, productResponse)
 }
 
-func UpdateProductQuantityHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	productID, err := strconv.ParseInt(vars["id"], 10, 32)
-	if err != nil {
-		res.ERROR(w, http.StatusBadRequest, err)
-		return
-	}
-
-	quantity, err := strconv.Atoi(r.FormValue("quantity"))
-	if err != nil {
-		res.ERROR(w, http.StatusBadRequest, err)
-		return
-	}
-
-	err = dbms.UpdateProductQuantity(int32(productID), int32(quantity))
-	if err != nil {
-		res.ERROR(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	res.JSON(w, http.StatusOK, map[string]string{"message": "Product quantity updated successfully"})
-}
+//
+//func UpdateProductQuantityHandler(w http.ResponseWriter, r *http.Request) {
+//	vars := mux.Vars(r)
+//	productID, err := strconv.ParseInt(vars["id"], 10, 32)
+//	if err != nil {
+//		res.ERROR(w, http.StatusBadRequest, err)
+//		return
+//	}
+//
+//	quantity, err := strconv.Atoi(r.FormValue("quantity"))
+//	if err != nil {
+//		res.ERROR(w, http.StatusBadRequest, err)
+//		return
+//	}
+//
+//	err = dbms.UpdateProductQuantity(int32(productID), int32(quantity))
+//	if err != nil {
+//		res.ERROR(w, http.StatusInternalServerError, err)
+//		return
+//	}
+//
+//	res.JSON(w, http.StatusOK, map[string]string{"message": "Product quantity updated successfully"})
+//}

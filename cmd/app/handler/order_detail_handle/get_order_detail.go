@@ -10,6 +10,7 @@ import (
 	"tf_ocg/cmd/app/dto/order_detail/response"
 	responseproduct "tf_ocg/cmd/app/dto/product_dto/response"
 	responseuser "tf_ocg/cmd/app/dto/user_dto/response"
+	responsevariant "tf_ocg/cmd/app/dto/variant_dto/response"
 	"tf_ocg/cmd/app/handler/utils_handle"
 	res "tf_ocg/pkg/response_api"
 )
@@ -37,8 +38,13 @@ func GetOrderInfo(orderID int32, userID int32) (response.OrderInfo, error) {
 			return response.OrderInfo{}, err
 		}
 
+		variant, err := dbms.GetVariantByIdInGetOrder(orderDetail.VariantID)
+		if err != nil {
+			return response.OrderInfo{}, err
+		}
+
 		// Lấy thông tin product từ orderDetail.ProductID
-		product, err := dbms.GetProductByID(orderDetail.ProductID)
+		product, err := dbms.GetProductByID(variant.ProductID)
 		if err != nil {
 			return response.OrderInfo{}, err
 		}
@@ -56,16 +62,24 @@ func GetOrderInfo(orderID int32, userID int32) (response.OrderInfo, error) {
 				PhoneNumber: user.PhoneNumber,
 			},
 			ProductInfo: responseproduct.ProductInfo{
-				ProductID:         product.ProductID,
-				Handle:            product.Handle,
-				Title:             product.Title,
-				Description:       product.Description,
-				Price:             product.Price,
-				CategoryID:        product.CategoryID,
-				QuantityRemaining: product.QuantityRemaining,
-				Image:             product.Image,
-				CreatedAt:         product.CreatedAt,
-				UpdatedAt:         product.UpdatedAt,
+				ProductID:   product.ProductID,
+				Handle:      product.Handle,
+				Title:       product.Title,
+				Description: product.Description,
+				Price:       product.Price,
+				CategoryID:  product.CategoryID,
+				Image:       product.Image,
+				CreatedAt:   product.CreatedAt,
+				UpdatedAt:   product.UpdatedAt,
+			},
+			VariantInfo: responsevariant.VariantResponse{
+				VariantID:    variant.VariantID,
+				Title:        variant.Title,
+				Price:        variant.Price,
+				ComparePrice: variant.ComparePrice,
+				CountInStock: variant.CountInStock,
+				OptionValue1: variant.OptionValue1,
+				OptionValue2: variant.OptionValue2,
 			},
 		}
 

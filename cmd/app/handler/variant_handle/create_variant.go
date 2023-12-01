@@ -47,14 +47,14 @@ func CreateVariantHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Trả về thông tin của variant vừa được tạo
 	createVariantRes := response.VariantResponse{
-		VariantID:      createdVariant.VariantID,
-		ProductID:      createdVariant.ProductID,
-		Title:          createdVariant.Title,
-		Price:          createdVariant.Price,
-		ComparePrice:   createdVariant.ComparePrice,
-		CountInStock:   createdVariant.CountInStock,
-		OptionProduct1: createdVariant.OptionProduct1,
-		OptionProduct2: createdVariant.OptionProduct2,
+		VariantID:    createdVariant.VariantID,
+		ProductID:    createdVariant.ProductID,
+		Title:        createdVariant.Title,
+		Price:        createdVariant.Price,
+		ComparePrice: createdVariant.ComparePrice,
+		CountInStock: createdVariant.CountInStock,
+		OptionValue1: createdVariant.OptionValue1,
+		OptionValue2: createdVariant.OptionValue2,
 	}
 
 	res.JSON(w, http.StatusCreated, createVariantRes)

@@ -141,44 +141,6 @@ func SearchProduct(searchText string, categories []string, from string, to strin
 	return products, totalCount, nil
 }
 
-func UpdateProductQuantity(productID int32, newQuantity int32) error {
-	product := &models.Product{}
-	err := GetProductById(product, productID)
-	if err != nil {
-		return errors.New("Failed to get product")
-	}
-
-	if product.QuantityRemaining < newQuantity {
-		return errors.New("Not enough quantity remaining")
-	}
-
-	product.QuantityRemaining -= newQuantity
-
-	err = UpdateProduct(product, productID)
-	if err != nil {
-		return errors.New("Failed to update product quantity")
-	}
-
-	return nil
-}
-
-func UpdateProductQuantityWithIncrease(productID int32, quantityToIncrease int32) error {
-	product := &models.Product{}
-	err := GetProductById(product, productID)
-	if err != nil {
-		return errors.New("Failed to get product")
-	}
-
-	product.QuantityRemaining += quantityToIncrease
-
-	err = UpdateProduct(product, productID)
-	if err != nil {
-		return errors.New("Failed to update product quantity")
-	}
-
-	return nil
-}
-
 func GetProductByID(productID int32) (models.Product, error) {
 	var product models.Product
 	err := database.Db.First(&product, productID).Error

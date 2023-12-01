@@ -32,19 +32,19 @@ func AdminAcceptCancelRequestHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	orderDetails, err := dbms.GetOrderDetailsByOrderID(orderID)
-	if err != nil {
-		res.ERROR(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	for _, orderItem := range orderDetails {
-		err := dbms.UpdateProductQuantityWithIncrease(orderItem.ProductID, orderItem.Quantity)
-		if err != nil {
-			res.ERROR(w, http.StatusInternalServerError, err)
-			return
-		}
-	}
+	//orderDetails, err := dbms.GetOrderDetailsByOrderID(orderID)
+	//if err != nil {
+	//	res.ERROR(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//
+	//for _, orderItem := range orderDetails {
+	//	err := update_variant.UpdateVariantQuantityWithIncrease(orderItem.VariantID, orderItem.Quantity)
+	//	if err != nil {
+	//		res.ERROR(w, http.StatusInternalServerError, err)
+	//		return
+	//	}
+	//}
 
 	res.JSON(w, http.StatusOK, map[string]string{"message": "Order cancellation accepted by admin"})
 }

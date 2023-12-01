@@ -18,5 +18,5 @@ func SetupProductRoutes(r *mux.Router) {
 	r.HandleFunc("/{id}", authAdminMiddleware(product.DeleteProduct)).Methods("DELETE")
 	r.HandleFunc("/category/get-list", authAdminMiddleware(product.GetListProductByCategoryId)).Methods("GET")
 	r.HandleFunc("/search/list", authMiddleware(product.SearchProducts)).Methods("GET")
-	r.HandleFunc("/update-product-quantity/{id}", authMiddleware(product.UpdateProductQuantityHandler)).Methods("PUT")
+
 }
