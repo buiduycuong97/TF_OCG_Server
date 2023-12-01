@@ -1,6 +1,7 @@
 package response
 
 type Product struct {
+	ProductId         int32   `json:"productId"`
 	Handle            string  `json:"handle"`
 	Title             string  `json:"title"`
 	Description       string  `json:"description"`
