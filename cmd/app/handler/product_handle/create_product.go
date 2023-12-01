@@ -2,6 +2,7 @@ package product_handle
 
 import (
 	"encoding/json"
+	"github.com/gosimple/slug"
 	"io"
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
@@ -29,6 +30,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Title is required"))
 		return
 	}
+	product.Handle = slug.Make(product.Title)
 
 	_, err = dbms.CreateProduct(&product)
 	if err != nil {
@@ -37,6 +39,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	createProductRes := response.Product{
+		ProductId:         product.ProductID,
 		Handle:            product.Handle,
 		Title:             product.Title,
 		Description:       product.Description,

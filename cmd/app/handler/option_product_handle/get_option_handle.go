@@ -19,3 +19,12 @@ func GetOptionProductByProductId(w http.ResponseWriter, r *http.Request) {
 	}
 	res.JSON(w, http.StatusOK, optionProductList)
 }
+
+func GetAllOptionProduct(w http.ResponseWriter, r *http.Request) {
+	optionProductList, err := dbms.GetAllOptionProduct()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	res.JSON(w, http.StatusOK, optionProductList)
+}
