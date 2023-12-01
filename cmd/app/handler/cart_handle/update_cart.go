@@ -18,9 +18,9 @@ func UpdateCartItemHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	vars := mux.Vars(r)
-	productID, err := strconv.Atoi(vars["productId"])
+	variantID, err := strconv.Atoi(vars["variantId"])
 	if err != nil {
-		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid product ID"))
+		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid variant ID"))
 		return
 	}
 	quantity, err := strconv.Atoi(r.FormValue("quantity"))
@@ -29,7 +29,13 @@ func UpdateCartItemHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = dbms.UpdateCartItem(int(userID), productID, quantity)
+	// Kiểm tra số lượng trước khi cập nhật giỏ hàng
+	if !isQuantityValid(int32(variantID), int32(quantity)) {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid quantity"))
+		return
+	}
+
+	err = dbms.UpdateCartItem(int(userID), variantID, quantity)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, errors.New("Failed to update cart"))
 		return

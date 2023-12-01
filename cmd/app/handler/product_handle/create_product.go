@@ -39,13 +39,11 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	createProductRes := response.Product{
-		ProductId:         product.ProductID,
-		Handle:            product.Handle,
-		Title:             product.Title,
-		Description:       product.Description,
-		Price:             product.Price,
-		CategoryID:        product.CategoryID,
-		QuantityRemaining: product.QuantityRemaining,
+		Handle:      product.Handle,
+		Title:       product.Title,
+		Description: product.Description,
+		Price:       product.Price,
+		CategoryID:  product.CategoryID,
 	}
 	res.JSON(w, http.StatusCreated, createProductRes)
 }

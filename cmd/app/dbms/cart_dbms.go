@@ -8,15 +8,15 @@ import (
 	"tf_ocg/proto/models"
 )
 
-func AddToCart(userID, productID, quantity int32) (*models.Cart, error) {
+func AddToCart(userID, variantID, quantity int32) (*models.Cart, error) {
 	tx := database_manager.Db.Begin()
 
 	existingCart := &models.Cart{}
-	err := tx.Where("user_id = ? AND product_id = ?", userID, productID).First(existingCart).Error
+	err := tx.Where("user_id = ? AND variant_id = ?", userID, variantID).First(existingCart).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			fmt.Println("Record not found, creating new item")
-			cart, err := createNewCartItem(userID, productID, quantity, tx)
+			cart, err := createNewCartItem(userID, variantID, quantity, tx)
 			if err != nil {
 				tx.Rollback()
 				fmt.Println("Error creating new item:", err)
@@ -30,7 +30,7 @@ func AddToCart(userID, productID, quantity int32) (*models.Cart, error) {
 	}
 
 	existingCart.Quantity += quantity
-	err = tx.Model(existingCart).Where("user_id = ? AND product_id = ?", userID, productID).
+	err = tx.Model(existingCart).Where("user_id = ? AND variant_id = ?", userID, variantID).
 		Update("quantity", existingCart.Quantity).Error
 	if err != nil {
 		tx.Rollback()
@@ -42,19 +42,19 @@ func AddToCart(userID, productID, quantity int32) (*models.Cart, error) {
 	return existingCart, nil
 }
 
-func createNewCartItem(userID, productID, quantity int32, tx *gorm.DB) (*models.Cart, error) {
-	product := &models.Product{}
-	err := GetProductById(product, productID)
+func createNewCartItem(userID, variantID, quantity int32, tx *gorm.DB) (*models.Cart, error) {
+	variant := &models.Variant{}
+	err := GetVariantById(variant, variantID)
 	if err != nil {
 		tx.Rollback()
 		return nil, err
 	}
 
-	totalPrice := product.Price * float64(quantity)
+	totalPrice := float64(variant.Price) * float64(quantity)
 
 	newCartItem := &models.Cart{
 		UserID:     userID,
-		ProductID:  productID,
+		VariantID:  variantID,
 		Quantity:   quantity,
 		TotalPrice: totalPrice,
 	}
@@ -80,20 +80,19 @@ func GetCartByUserID(userID int32) ([]models.Cart, error) {
 	return cartItems, nil
 }
 
-func UpdateCartItem(userID, productID, quantity int) error {
-	cartItem, err := GetCartItem(int32(userID), productID)
+func UpdateCartItem(userID, variantID, quantity int) error {
+	cartItem, err := GetCartItem(int32(userID), variantID)
 	if err != nil {
 		return errors.New("Failed to get cart item")
 	}
 
-	product, err := GetProduct(productID)
+	variant, err := GetVariant(variantID)
 	if err != nil {
-		return errors.New("Failed to get product details")
+		return errors.New("Failed to get variant details")
 	}
 
 	cartItem.Quantity = int32(quantity)
-
-	cartItem.TotalPrice = float64(quantity) * product.Price
+	cartItem.TotalPrice = float64(quantity) * float64(variant.Price)
 
 	if err := UpdateCart(cartItem, cartItem.CartID); err != nil {
 		return errors.New("Failed to update cart item")
@@ -102,13 +101,10 @@ func UpdateCartItem(userID, productID, quantity int) error {
 	return nil
 }
 
-func GetProduct(productID int) (*models.Product, error) {
-	product := &models.Product{}
-	err := database_manager.Db.Where("product_id = ?", productID).First(product).Error
-	if err != nil {
-		return nil, err
-	}
-	return product, nil
+func GetVariant(variantID int) (*models.Variant, error) {
+	variant := &models.Variant{}
+	err := GetVariantById(variant, int32(variantID))
+	return variant, err
 }
 
 func UpdateCart(cart *models.Cart, cartID int32) error {
@@ -119,17 +115,17 @@ func UpdateCart(cart *models.Cart, cartID int32) error {
 	return nil
 }
 
-func GetCartItem(userID int32, productID int) (*models.Cart, error) {
+func GetCartItem(userID int32, variantID int) (*models.Cart, error) {
 	cartItem := &models.Cart{}
-	err := database_manager.Db.Where("user_id = ? AND product_id = ?", userID, productID).First(cartItem).Error
+	err := database_manager.Db.Where("user_id = ? AND variant_id = ?", userID, variantID).First(cartItem).Error
 	if err != nil {
 		return nil, err
 	}
 	return cartItem, nil
 }
 
-func RemoveCartItem(userID int32, productID int) error {
-	cartItem, err := GetCartItem(userID, int(int32(productID)))
+func RemoveCartItem(userID int32, variantID int) error {
+	cartItem, err := GetCartItem(userID, variantID)
 	if err != nil {
 		return errors.New("Failed to get cart item")
 	}
