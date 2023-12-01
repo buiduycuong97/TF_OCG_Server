@@ -25,7 +25,6 @@ func CreateVariantHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Kiểm tra xem variant có hợp lệ không
 	if variant.ProductID <= 0 {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("ProductID is required"))
@@ -38,14 +37,12 @@ func CreateVariantHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Tạo variant trong cơ sở dữ liệu
 	createdVariant, err := dbms.CreateVariant(&variant)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Trả về thông tin của variant vừa được tạo
 	createVariantRes := response.VariantResponse{
 		VariantID:      createdVariant.VariantID,
 		ProductID:      createdVariant.ProductID,
