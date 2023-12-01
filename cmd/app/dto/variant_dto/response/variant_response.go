@@ -1,6 +1,6 @@
-package models
+package response
 
-type Variant struct {
+type VariantResponse struct {
 	VariantID      int32  `gorm:"primaryKey;autoIncrement" json:"variantId"`
 	ProductID      int32  `json:"productId"`
 	Title          string `json:"title"`

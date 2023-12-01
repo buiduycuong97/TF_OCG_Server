@@ -136,7 +136,7 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 			OrderID:   createdOrder.OrderID,
 			ProductID: cartItem.ProductID,
 			Quantity:  cartItem.Quantity,
-			Price:     cartItem.TotalPrice / float64(cartItem.Quantity),
+			Price:     cartItem.TotalPrice,
 		}
 
 		err = dbms.CreateOrderDetail(tx, orderDetail)
