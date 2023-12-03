@@ -10,6 +10,7 @@ import (
 	"gopkg.in/gomail.v2"
 	"io"
 	"net/http"
+	"net/url"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/dto/user_dto/request"
 	"tf_ocg/pkg/response_api"
@@ -95,16 +96,33 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	refreshToken, _ := utils.GenerateRefreshToken(user.UserID)
 	user.RefreshToken = refreshToken
 	err = dbms.UpdateUser(&user, user.UserID)
-	loginRes := request.LoginRes{
-		UserID:       result.UserID,
-		UserName:     result.UserName,
-		Email:        result.Email,
-		Role:         result.Role,
-		UserType:     result.UserType,
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
+	//loginRes := request.LoginRes{
+	//	UserID:       result.UserID,
+	//	UserName:     result.UserName,
+	//	Email:        result.Email,
+	//	Role:         result.Role,
+	//	UserType:     result.UserType,
+	//	AccessToken:  accessToken,
+	//	RefreshToken: refreshToken,
+	//}
+	//response_api.JSON(w, http.StatusOK, loginRes)
+	u := url.URL{
+		Host: "localhost:8080",
+		Path: "/login",
 	}
-	response_api.JSON(w, http.StatusOK, loginRes)
+	// Thêm query parameters
+	q := make(url.Values)
+	q.Set("userID", fmt.Sprintf("%d", result.UserID))
+	q.Set("userName", result.UserName)
+	q.Set("email", result.Email)
+	q.Set("role", result.Role)
+	q.Set("userType", result.UserType)
+	q.Set("accessToken", accessToken)
+	q.Set("refreshToken", refreshToken)
+	u.RawQuery = q.Encode()
+
+	urlString := u.String()
+	http.Redirect(w, r, urlString, http.StatusTemporaryRedirect)
 	fmt.Fprintf(w, "Response : %s", content)
 }
 
