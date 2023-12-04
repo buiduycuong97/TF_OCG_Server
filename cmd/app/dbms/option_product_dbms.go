@@ -7,11 +7,11 @@ import (
 )
 
 type OptionResult struct {
-	OptionValueID   int32
-	OptionProductID int32
-	Value           string
-	ProductID       int32
-	OptionType      string
+	OptionValueID   int32  `json:"optionValueId"`
+	OptionProductID int32  `json:"optionProductId"`
+	Value           string `json:"value"`
+	ProductID       int32  `json:"productId"`
+	OptionType      string `json:"optionType"`
 }
 
 func CreateOptionProduct(optionProduct *models.OptionProduct) (*models.OptionProduct, error) {
