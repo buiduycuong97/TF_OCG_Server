@@ -60,9 +60,6 @@ func ViewOrderBeingDeliveredHandler(w http.ResponseWriter, r *http.Request) {
 func ViewCompleteTheOrderHandler(w http.ResponseWriter, r *http.Request) {
 	viewOrdersByStatus(w, r, models.CompleteTheOrder)
 }
-func ViewRequestToCancelOrderHandler(w http.ResponseWriter, r *http.Request) {
-	viewOrdersByStatus(w, r, models.RequestToCancelOrder)
-}
 func ViewCancelledOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	viewOrdersByStatus(w, r, models.Cancelled)
 }

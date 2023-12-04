@@ -35,17 +35,14 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Khai báo một biến để giải mã JSON
 	var requestData map[string]interface{}
 
-	// Giải mã dữ liệu JSON vào biến requestData
 	err = json.Unmarshal(body, &requestData)
 	if err != nil {
 		res.ERROR(w, http.StatusBadRequest, fmt.Errorf("Failed to unmarshal JSON: %v", err))
 		return
 	}
 
-	// Kiểm tra xem requestData có chứa các trường cần thiết không
 	shippingAddress, ok := requestData["shippingAddress"].(string)
 	if !ok || shippingAddress == "" {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Shipping address is required"))
@@ -58,7 +55,6 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Chuyển đổi giá trị provinceID thành int32
 	convertedProvinceID := int32(provinceID)
 
 	cartItems, err := dbms.GetCartByUserID(userID)
@@ -72,7 +68,6 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Thêm trường totalQuantity vào requestData
 	totalQuantity, ok := requestData["totalQuantity"].(float64)
 	if !ok {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Total quantity is required"))
@@ -81,21 +76,18 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	convertedTotalQuantity := int32(totalQuantity)
 
-	// Thêm trường totalPrice vào requestData
 	totalPrice, ok := requestData["totalPrice"].(float64)
 	if !ok {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Total price is required"))
 		return
 	}
 
-	// Thêm trường grandTotal vào requestData
 	grandTotal, ok := requestData["grandTotal"].(float64)
 	if !ok {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Grand total is required"))
 		return
 	}
 
-	// Thêm trường discountAmount vào requestData
 	discountAmount, ok := requestData["discountAmount"].(float64)
 	if !ok {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Discount amount is required"))
@@ -165,12 +157,11 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tx.Commit()
+	startOrderUpdateCron(createdOrder.OrderID)
 
-	// Gọi hàm cập nhật số lượng trong kho của biến thể sau khi checkout thành công
 	for _, cartItem := range cartItems {
 		err := variant_handle.UpdateVariantCountInStock(cartItem.VariantID, cartItem.Quantity)
 		if err != nil {
-			// Xử lý lỗi nếu cần
 		}
 	}
 
@@ -189,4 +180,10 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res.JSON(w, http.StatusCreated, responseData)
+
+	defer func() {
+		if orderUpdateCron != nil {
+			orderUpdateCron.Stop()
+		}
+	}()
 }
