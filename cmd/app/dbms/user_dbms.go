@@ -187,3 +187,10 @@ func SearchUser(searchText string, page, pageSize int32) ([]*models.User, error)
 
 	return users, nil
 }
+
+func ChangePassword(email string, password string) error {
+	var user models.User
+	hashPass, _ := utils.HashPassword(password)
+	database.Db.Model(&user).Where("email = ?", email).Update("password", hashPass)
+	return nil
+}

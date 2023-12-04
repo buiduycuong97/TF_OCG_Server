@@ -71,6 +71,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		UserID:       userRes.UserID,
 		UserName:     userRes.UserName,
 		Email:        userRes.Email,
+		PhoneNumber:  userRes.PhoneNumber,
 		Role:         userRes.Role,
 		UserType:     userRes.UserType,
 		AccessToken:  accessToken,
