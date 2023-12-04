@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
+	option_product_response "tf_ocg/cmd/app/dto/option_product/response"
+	option_value_response "tf_ocg/cmd/app/dto/option_value/response"
+	"tf_ocg/cmd/app/dto/product_dto/response"
 	"tf_ocg/cmd/app/handler/utils_handle"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
@@ -32,6 +35,8 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 
 func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
 	handle := r.URL.Query().Get("handle")
+
+	// Fetch the product by handle
 	var product models.Product
 	err := dbms.GetProductByHandle(&product, handle)
 	if err != nil {
@@ -39,7 +44,46 @@ func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res.JSON(w, http.StatusOK, product)
+	// Fetch option products related to the product
+	optionProducts, err := dbms.GetListOptionProductByProductID(product.ProductID)
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Populate option values for each option set
+	var optionProductsResponse []option_product_response.OptionProductResponse
+	for _, optionSet := range optionProducts {
+		var optionValuesResponse []option_value_response.OptionValueResponse
+		optionValues, err := dbms.GetOptionValueByOptionProductId(optionSet.OptionProductID)
+		if err != nil {
+			res.ERROR(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		for _, optionValue := range optionValues {
+			optionValuesResponse = append(optionValuesResponse, option_value_response.OptionValueResponse{
+				OptionValueID:   optionValue.OptionValueID,
+				OptionProductID: optionValue.OptionProductID,
+				Value:           optionValue.Value,
+			})
+		}
+
+		optionProductsResponse = append(optionProductsResponse, option_product_response.OptionProductResponse{
+			OptionProductID: optionSet.OptionProductID,
+			ProductID:       optionSet.ProductID,
+			OptionType:      optionSet.OptionType,
+			OptionValues:    optionValuesResponse,
+		})
+	}
+
+	// Create the final response structure
+	result := response.ProductWithOptionResponse{
+		Product:        product,
+		OptionProducts: optionProductsResponse,
+	}
+
+	res.JSON(w, http.StatusOK, result)
 }
 
 func GetListProducts(w http.ResponseWriter, r *http.Request) {

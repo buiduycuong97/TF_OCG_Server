@@ -1,6 +1,7 @@
 package order_handle
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
@@ -9,11 +10,17 @@ import (
 )
 
 func CompleteOrderHandler(w http.ResponseWriter, r *http.Request) {
-	orderID, err := getOrderIDFromRequest(r)
-	if err != nil {
-		res.ERROR(w, http.StatusBadRequest, err)
+	var requestBody struct {
+		OrderID int32 `json:"orderId"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&requestBody); err != nil {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Failed to decode request body"))
 		return
 	}
+
+	orderID := requestBody.OrderID
 
 	currentStatus, err := dbms.GetOrderStatus(orderID)
 	if err != nil {

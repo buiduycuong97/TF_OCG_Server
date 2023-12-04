@@ -50,3 +50,14 @@ func GetVariantByIdInGetOrder(variantID int32) (models.Variant, error) {
 func UpdateVariant(variant *models.Variant, variantID int32) error {
 	return database.Db.Model(&models.Variant{}).Where("variant_id = ?", variantID).Updates(variant).Error
 }
+
+func GetVariantIDsByProductID(productID int32) ([]int32, error) {
+	var variantIDs []int32
+
+	result := database.Db.Model(&models.Variant{}).Where("product_id = ?", productID).Pluck("variant_id", &variantIDs)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return variantIDs, nil
+}

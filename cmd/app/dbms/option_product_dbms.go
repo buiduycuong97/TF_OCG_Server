@@ -51,3 +51,11 @@ func GetOptionProductByProductId(productID int32) ([]*OptionResult, error) {
 	}
 	return result, nil
 }
+
+func GetListOptionProductByProductID(productID int32) ([]models.OptionProduct, error) {
+	var optionProducts []models.OptionProduct
+	if err := database.Db.Where("product_id = ?", productID).Find(&optionProducts).Error; err != nil {
+		return nil, err
+	}
+	return optionProducts, nil
+}
