@@ -91,15 +91,13 @@ func GetListProducts(w http.ResponseWriter, r *http.Request) {
 	pageSizeStr := r.URL.Query().Get("pageSize")
 
 	page, err := strconv.ParseInt(pageStr, 10, 32)
-	if err != nil {
-		res.ERROR(w, http.StatusBadRequest, err)
-		return
+	if err != nil || page <= 0 {
+		page = 1
 	}
 
 	pageSize, err := strconv.ParseInt(pageSizeStr, 10, 32)
-	if err != nil {
-		res.ERROR(w, http.StatusBadRequest, err)
-		return
+	if err != nil || pageSize <= 0 {
+		pageSize = 10
 	}
 
 	products, totalCount, err := dbms.GetListProduct(int32(page), int32(pageSize))

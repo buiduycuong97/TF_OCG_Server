@@ -157,7 +157,6 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tx.Commit()
-	startOrderUpdateCron(createdOrder.OrderID)
 
 	for _, cartItem := range cartItems {
 		err := variant_handle.UpdateVariantCountInStock(cartItem.VariantID, cartItem.Quantity)
@@ -181,9 +180,4 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	res.JSON(w, http.StatusCreated, responseData)
 
-	defer func() {
-		if orderUpdateCron != nil {
-			orderUpdateCron.Stop()
-		}
-	}()
 }

@@ -1,7 +1,9 @@
 package order_handle
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
@@ -10,13 +12,23 @@ import (
 )
 
 func RequestCancelOrderHandler(w http.ResponseWriter, r *http.Request) {
-	orderIDStr := r.URL.Query().Get("orderId")
-	if orderIDStr == "" {
+	// Đọc dữ liệu JSON từ yêu cầu
+	var requestData map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&requestData)
+	if err != nil {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Error decoding JSON"))
+		return
+	}
+
+	// Trích xuất orderId từ dữ liệu JSON
+	orderIDRaw, ok := requestData["orderId"]
+	if !ok {
 		res.ERROR(w, http.StatusBadRequest, errors.New("orderId is required"))
 		return
 	}
 
-	orderID, err := strconv.ParseInt(orderIDStr, 10, 32)
+	// Kiểm tra định dạng của orderId
+	orderID, err := strconv.ParseInt(fmt.Sprintf("%v", orderIDRaw), 10, 32)
 	if err != nil {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid orderId format"))
 		return

@@ -26,6 +26,7 @@ func ClearCart(tx *gorm.DB, userID int32) error {
 func CreateOrder(tx *gorm.DB, order *models.Order) (*models.Order, error) {
 	now := time.Now()
 	order.OrderDate = now
+	order.CreatedAt = time.Now()
 	order.Status = models.Pending
 
 	err := tx.Create(order).Error
@@ -63,7 +64,7 @@ func GetOrderStatus(orderID int32) (string, error) {
 	return string(order.Status), nil
 }
 
-func GetOrdersByStatus(status models.OrderStatus, page int32, pageSize int32) ([]models.Order, int64, error) {
+func GetOrdersByStatus(status models.OrderStatus, page int64, pageSize int64) ([]models.Order, int64, error) {
 	var orders []models.Order
 
 	offset := (page - 1) * pageSize
@@ -77,6 +78,17 @@ func GetOrdersByStatus(status models.OrderStatus, page int32, pageSize int32) ([
 	database.Db.Model(&models.Order{}).Where("status = ?", status).Count(&totalItem)
 
 	return orders, totalItem, nil
+}
+
+func GetOrdersByStatusNoPage(status models.OrderStatus) ([]models.Order, error) {
+	var orders []models.Order
+
+	result := database.Db.Where("status = ?", status).Find(&orders)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	return orders, nil
 }
 
 func UpdateOrderTotalValues(db *gorm.DB, orderID int32, totalQuantity int32, totalPrice float64) error {

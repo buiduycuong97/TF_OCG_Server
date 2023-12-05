@@ -22,4 +22,5 @@ type Order struct {
 	TotalPrice      float64     `json:"totalPrice"`
 	DiscountAmount  float64     `json:"discountAmount"`
 	GrandTotal      float64     `json:"grandTotal"`
+	CreatedAt       time.Time   `json:"createdAt"`
 }

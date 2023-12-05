@@ -96,21 +96,10 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	refreshToken, _ := utils.GenerateRefreshToken(user.UserID)
 	user.RefreshToken = refreshToken
 	err = dbms.UpdateUser(&user, user.UserID)
-	//loginRes := request.LoginRes{
-	//	UserID:       result.UserID,
-	//	UserName:     result.UserName,
-	//	Email:        result.Email,
-	//	Role:         result.Role,
-	//	UserType:     result.UserType,
-	//	AccessToken:  accessToken,
-	//	RefreshToken: refreshToken,
-	//}
-	//response_api.JSON(w, http.StatusOK, loginRes)
 	u := url.URL{
 		Host: "localhost:8080",
 		Path: "/login",
 	}
-	// Thêm query parameters
 	q := make(url.Values)
 	q.Set("userID", fmt.Sprintf("%d", result.UserID))
 	q.Set("userName", result.UserName)

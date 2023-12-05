@@ -17,4 +17,5 @@ type OrderInfo struct {
 	DiscountAmount  float64            `json:"discountAmount"`
 	GrandTotal      float64            `json:"grandTotal"`
 	OrderDetails    []OrderDetailInfo  `json:"orderDetails"`
+	TotalPages      int                `json:"totalPages"`
 }

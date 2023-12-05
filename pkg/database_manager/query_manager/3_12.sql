@@ -22,3 +22,6 @@ ALTER TABLE `e-commerce`.`reviews`
 
 ALTER TABLE order_details
     ADD COLUMN is_review BOOLEAN;
+
+ALTER TABLE `e-commerce`.`orders`
+    ADD COLUMN `created_at` DATETIME NULL AFTER `grand_total`;

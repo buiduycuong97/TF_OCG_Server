@@ -68,23 +68,28 @@ func viewOrdersByStatus(w http.ResponseWriter, r *http.Request, status models.Or
 	pageStr := r.URL.Query().Get("page")
 	pageSizeStr := r.URL.Query().Get("pageSize")
 
-	defaultPage := int32(1)
-	defaultPageSize := int32(4)
-
-	page, err := strconv.ParseInt(pageStr, 10, 32)
+	page, err := strconv.ParseInt(pageStr, 10, 64)
 	if err != nil || page < 1 {
-		page = int64(defaultPage)
+		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid or missing 'page' parameter"))
+		return
 	}
 
-	pageSize, err := strconv.ParseInt(pageSizeStr, 10, 32)
+	pageSize, err := strconv.ParseInt(pageSizeStr, 10, 64)
 	if err != nil || pageSize < 1 {
-		pageSize = int64(defaultPageSize)
+		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid or missing 'pageSize' parameter"))
+		return
 	}
 
-	orders, totalItem, err := dbms.GetOrdersByStatus(status, int32(page), int32(pageSize))
+	orders, totalItem, err := dbms.GetOrdersByStatus(status, page, pageSize)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
+	}
+
+	// Calculate totalPages
+	totalPages := int64(0)
+	if pageSize > 0 {
+		totalPages = (totalItem + pageSize - 1) / pageSize
 	}
 
 	var orderResponses []order_response.OrderResponseList
@@ -120,13 +125,13 @@ func viewOrdersByStatus(w http.ResponseWriter, r *http.Request, status models.Or
 	}
 
 	response := map[string]interface{}{
-		"orders":    orderResponses,
-		"totalItem": totalItem,
+		"orders":     orderResponses,
+		"totalItem":  totalItem,
+		"totalPages": totalPages,
 	}
 
 	res.JSON(w, http.StatusOK, response)
 }
-
 func calculateTotalPrice(orderDetails []models.OrderDetail) float64 {
 	var totalPrice float64
 
