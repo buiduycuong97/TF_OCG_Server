@@ -2,6 +2,7 @@ package variant_handle
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
@@ -132,4 +133,22 @@ func GetVariantDetails(variantID int32, orderDetailID int32, isReview bool) (map
 	response["isReview"] = isReview
 
 	return response, nil
+}
+
+func GetVariantById(w http.ResponseWriter, r *http.Request) {
+	variantIDStr := mux.Vars(r)["id"]
+	variantID, err := strconv.ParseInt(variantIDStr, 10, 32)
+	if err != nil {
+		response_api.ERROR(w, http.StatusBadRequest, err)
+		return
+	}
+
+	var variant models.Variant
+	err = dbms.GetVariantById(&variant, int32(variantID))
+	if err != nil {
+		response_api.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	response_api.JSON(w, http.StatusOK, variant)
 }
