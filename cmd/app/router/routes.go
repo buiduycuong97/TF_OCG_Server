@@ -18,6 +18,7 @@ func InitializeRoutes(server *mux.Router) {
 	optionValueRouter := server.PathPrefix("/option-value").Subrouter()
 	optionProvince := server.PathPrefix("/province").Subrouter()
 	orderDetailRouter := server.PathPrefix("/order-detail").Subrouter()
+	transactionRouter := server.PathPrefix("/transaction").Subrouter()
 
 	SetupUserRoutes(userRouter)
 	SetupAuthRoutes(authRouter)
@@ -32,4 +33,5 @@ func InitializeRoutes(server *mux.Router) {
 	SetupOptionValueRoutes(optionValueRouter)
 	SetupProvinceRoutes(optionProvince)
 	SetupOrderDetailRoutes(orderDetailRouter)
+	SetupTransactionRoutes(transactionRouter)
 }

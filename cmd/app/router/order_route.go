@@ -10,6 +10,8 @@ func SetupOrderRoutes(r *mux.Router) {
 	authMiddleware := middleware.AuthMiddleware
 	//authAdminMiddleware := middleware.AuthAdmin
 	r.HandleFunc("/checkout", authMiddleware(order_handle.CheckoutHandler)).Methods("POST")
+	r.HandleFunc("/api/orders", order_handle.CreateOrderHandler).Methods("POST")
+	r.HandleFunc("/api/orders/{orderID}/capture", order_handle.CaptureOrderHandler).Methods("POST")
 	r.HandleFunc("/complete", order_handle.CompleteOrderHandler).Methods("POST")
 	r.HandleFunc("/request-cancel", authMiddleware(order_handle.RequestCancelOrderHandler)).Methods("POST")
 	r.HandleFunc("/get-pending-orders", authMiddleware(order_handle.ViewPendingOrdersHandler)).Methods("GET")
