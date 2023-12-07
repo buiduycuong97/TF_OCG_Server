@@ -71,6 +71,7 @@ func GetOrderInfo(orderID int32, userID int32) (response.OrderInfo, error) {
 				Price:        variant.Price,
 				ComparePrice: variant.ComparePrice,
 				CountInStock: variant.CountInStock,
+				Image:        variant.Image,
 				OptionValue1: variant.OptionValue1,
 				OptionValue2: variant.OptionValue2,
 			},
