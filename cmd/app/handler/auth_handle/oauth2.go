@@ -188,7 +188,7 @@ func sendResetPasswordEmail(email, resetToken string) error {
 	emailAddress := "pau30012002@gmail.com"
 	emailPassword := "pljf fqgx yycq ynhq"
 	subject := "Reset Your Password"
-	body := fmt.Sprintf("Click the following link to reset your password: http://localhost:8080/reset-password?token=%s", resetToken)
+	body := fmt.Sprintf("Click the following link to reset your password: http://localhost:8080/reset-password?resetToken=%s", resetToken)
 
 	m := gomail.NewMessage()
 	m.SetHeader("From", emailAddress)

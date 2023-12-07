@@ -141,3 +141,13 @@ func calculateTotalPrice(orderDetails []models.OrderDetail) float64 {
 
 	return totalPrice
 }
+
+func GetAllOrder(w http.ResponseWriter, r *http.Request) {
+	orders, err := dbms.GetAllOrder()
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	res.JSON(w, http.StatusOK, orders)
+}
