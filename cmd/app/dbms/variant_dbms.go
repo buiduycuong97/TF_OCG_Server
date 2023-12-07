@@ -23,7 +23,7 @@ func GetVariantIdByOption(productID, optionValue1, optionValue2 int32) (int32, e
 	var variantID int32
 
 	if optionValue2 == 0 {
-		result := database.Db.Raw("SELECT variant_id FROM variants WHERE product_id = ? AND option_value1 = ? AND option_value2 IS NULL", productID, optionValue1).Scan(&variantID)
+		result := database.Db.Raw("SELECT variant_id FROM variants WHERE product_id = ? AND option_value1 = ? AND option_value2 = 0", productID, optionValue1).Scan(&variantID)
 		if result.Error != nil {
 			return 0, result.Error
 		}

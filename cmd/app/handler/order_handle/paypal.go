@@ -89,7 +89,7 @@ func CreateOrder(grandTotal float64) (CreateOrderResponse, error) {
 			{
 				"amount": map[string]interface{}{
 					"currency_code": orderCurrency,
-					"value":         fmt.Sprintf("%.2f", orderAmount/23000),
+					"value":         fmt.Sprintf("%.2f", orderAmount/23500),
 				},
 			},
 		},
