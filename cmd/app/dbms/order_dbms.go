@@ -155,3 +155,12 @@ func GetOrderByID(orderID int32) (*models.Order, error) {
 
 	return &order, nil
 }
+
+func GetAllOrder() ([]models.Order, error) {
+	var orders []models.Order
+	result := database.Db.Find(&orders)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return orders, nil
+}
