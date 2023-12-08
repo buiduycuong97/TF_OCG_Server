@@ -11,10 +11,6 @@ import (
 func CreateDiscount(discount *models.Discount) (*models.Discount, error) {
 	existingDiscount := &models.Discount{}
 	database.Db.Raw("SELECT * FROM discounts WHERE discount_code = ?", discount.DiscountCode).Scan(existingDiscount)
-	if existingDiscount.DiscountID != 0 {
-		return nil, errors.New("Discount code already exists")
-	}
-
 	now := time.Now()
 	discount.StartDate = now
 	discount.EndDate = now.AddDate(0, 1, 0)
@@ -59,20 +55,38 @@ func UpdateDiscount(updatedDiscount *models.Discount, id int32) error {
 }
 
 func DeleteDiscount(discount *models.Discount, id int32) error {
-	database.Db.Where("discount_id = ?", id).Delete(discount)
-	return nil
-}
-
-func SaveUserDiscount(userID, discountID int32) error {
-	userDiscount := &models.UserDiscount{
-		UserID:     userID,
-		DiscountID: discountID,
+	var userDiscount models.UserDiscount
+	if err := database.Db.Where("discount_id = ?", id).Find(&userDiscount).Error; err == nil {
+		if err := database.Db.Delete(&userDiscount).Error; err != nil {
+			return err
+		}
 	}
 
-	err := database.Db.Create(userDiscount).Error
-	if err != nil {
+	if err := database.Db.Where("discount_id = ?", id).Delete(discount).Error; err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func DeleteDiscountAutoGen(discount *models.Discount, id int32) error {
+	if err := database.Db.Where("discount_id = ?", id).Delete(discount).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetDiscountByDifferentCode(discount *models.Discount, discountCode string) error {
+	return database.Db.Where("discount_code = ? AND discount_code NOT IN (SELECT discount_code FROM user_discount WHERE discount_code = ?)", discountCode, discountCode).First(discount).Error
+}
+
+func GetDiscountByDiscountCodeAndUserID(discount *models.Discount, discountCode string, userID int) error {
+	err := database.Db.
+		Joins("JOIN user_discounts ON discounts.discount_id = user_discounts.discount_id").
+		Where("discounts.discount_code = ? AND user_discounts.user_id = ?", discountCode, userID).
+		First(discount).
+		Error
+
+	return err
 }

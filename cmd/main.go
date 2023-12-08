@@ -9,7 +9,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"tf_ocg/cmd/app/handler/discount_handle"
 	"tf_ocg/cmd/app/handler/order_handle"
+	"tf_ocg/cmd/app/handler/utils_handle"
 	"tf_ocg/cmd/app/router"
 	"tf_ocg/pkg/database_manager"
 )
@@ -22,10 +24,11 @@ type Server struct {
 func Init() {
 	var server = Server{}
 	server.Db = database_manager.InitDb()
-	//server.Db.AutoMigrate(&models.User{})
 	server.Router = mux.NewRouter()
 	router.InitializeRoutes(server.Router)
 	order_handle.ScheduleOrderStatusUpdate()
+	discount_handle.ScheduleDiscountCodeGeneration()
+	go utils_handle.HandleRabbitMQMessages()
 	server.Run(":8000")
 	err := godotenv.Load()
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	"tf_ocg/cmd/app/dto/cart_dto/response"
 	variantresponse "tf_ocg/cmd/app/dto/variant_dto/response"
 	"tf_ocg/cmd/app/handler/utils_handle"
-	database "tf_ocg/pkg/database_manager"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
 )
@@ -34,7 +33,7 @@ func ViewCartHandler(w http.ResponseWriter, r *http.Request) {
 	discountCode := r.URL.Query().Get("discountCode")
 	var discountAmount float64
 	if discountCode != "" {
-		discountAmount, err = dbms.ApplyDiscountForOrder(database.Db, cartItems, discountCode)
+		discountAmount, err = dbms.ApplyDiscountForOrder(cartItems, discountCode)
 		if err != nil {
 			res.ERROR(w, http.StatusBadRequest, err)
 			return

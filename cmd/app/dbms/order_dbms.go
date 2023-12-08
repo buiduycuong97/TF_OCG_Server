@@ -100,8 +100,8 @@ func UpdateOrderTotalValues(db *gorm.DB, orderID int32, totalQuantity int32, tot
 		}).Error
 }
 
-func ApplyDiscountForOrder(db *gorm.DB, cartItems []models.Cart, discountCode string) (float64, error) {
-	discount, err := GetDiscountByCode(db, discountCode)
+func ApplyDiscountForOrder(cartItems []models.Cart, discountCode string) (float64, error) {
+	discount, err := GetDiscountByCode(discountCode)
 	if err != nil {
 		return 0, err
 	}
@@ -114,7 +114,7 @@ func ApplyDiscountForOrder(db *gorm.DB, cartItems []models.Cart, discountCode st
 		cartItem.TotalPrice -= productDiscount
 		totalDiscount += productDiscount
 	}
-	err = decreaseDiscountQuantity(db, discount)
+	err = decreaseDiscountQuantity(discount)
 	if err != nil {
 		return 0, err
 	}
@@ -132,14 +132,14 @@ func calculateProductDiscount(productPrice float64, discount models.Discount) fl
 	}
 }
 
-func decreaseDiscountQuantity(db *gorm.DB, discount models.Discount) error {
+func decreaseDiscountQuantity(discount models.Discount) error {
 	discount.AvailableQuantity--
-	return db.Save(&discount).Error
+	return database.Db.Save(&discount).Error
 }
 
-func GetDiscountByCode(db *gorm.DB, discountCode string) (models.Discount, error) {
+func GetDiscountByCode(discountCode string) (models.Discount, error) {
 	var discount models.Discount
-	err := db.Where("discount_code = ?", discountCode).First(&discount).Error
+	err := database.Db.Where("discount_code = ?", discountCode).First(&discount).Error
 	if err != nil {
 		return discount, err
 	}

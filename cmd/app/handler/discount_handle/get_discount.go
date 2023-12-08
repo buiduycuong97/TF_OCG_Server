@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
+	"tf_ocg/cmd/app/handler/utils_handle"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
+	"time"
 )
 
 func GetDiscountByID(w http.ResponseWriter, r *http.Request) {
@@ -32,20 +34,57 @@ func GetDiscountByID(w http.ResponseWriter, r *http.Request) {
 
 func GetDiscountByDiscountCode(w http.ResponseWriter, r *http.Request) {
 	discountCode := r.URL.Query().Get("discountCode")
+	userID, err := utils_handle.GetUserIDFromRequest(r)
+	if err != nil {
+		res.ERROR(w, http.StatusUnauthorized, errors.New("Invalid token"))
+		return
+	}
 
 	if discountCode == "" {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Discount code is required"))
 		return
 	}
 
-	var discount models.Discount
-	err := dbms.GetDiscountByDiscountCode(&discount, discountCode)
+	var userDiscount models.UserDiscount
+	err = dbms.GetUserDiscountByDiscountCodeAndUserID(&userDiscount, discountCode, int(userID))
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			res.ERROR(w, http.StatusNotFound, errors.New("Invalid discount code"))
+			var discount models.Discount
+			if err := dbms.GetDiscountByDifferentCode(&discount, discountCode); err != nil {
+				res.ERROR(w, http.StatusNotFound, errors.New("Invalid discount code"))
+				return
+			}
+
+			if discount.AvailableQuantity <= 0 {
+				res.ERROR(w, http.StatusForbidden, errors.New("Discount has been exhausted"))
+				return
+			}
+
+			if time.Now().After(discount.EndDate) {
+				res.ERROR(w, http.StatusForbidden, errors.New("Discount has expired"))
+				return
+			}
+
+			res.JSON(w, http.StatusOK, discount)
 			return
 		}
+
 		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	var discount models.Discount
+	if err := dbms.GetDiscountByID(&discount, userDiscount.DiscountID); err != nil {
+		res.ERROR(w, http.StatusNotFound, errors.New("Invalid discount code"))
+		return
+	}
+	if discount.AvailableQuantity <= 0 {
+		res.ERROR(w, http.StatusForbidden, errors.New("Discount has been exhausted"))
+		return
+	}
+
+	if time.Now().After(discount.EndDate) {
+		res.ERROR(w, http.StatusForbidden, errors.New("Discount has expired"))
 		return
 	}
 

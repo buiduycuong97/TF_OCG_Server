@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"gopkg.in/gomail.v2"
+	"gorm.io/gorm"
 	"io/ioutil"
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
+	"tf_ocg/cmd/app/handler/discount_handle"
 	"tf_ocg/cmd/app/handler/utils_handle"
 	"tf_ocg/cmd/app/handler/variant_handle"
 	database "tf_ocg/pkg/database_manager"
@@ -94,6 +97,33 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	discountCode, ok := requestData["discountCode"].(string)
+	if !ok {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Discount amount is required"))
+		return
+	}
+	if discountCode != "" {
+		var discount models.Discount
+		if err := dbms.GetDiscountByDiscountCodeAndUserID(&discount, discountCode, int(userID)); err != nil {
+			res.ERROR(w, http.StatusNotFound, errors.New("Invalid discount code"))
+			return
+		}
+
+		// Giảm số lượng discount đi 1
+		discount.AvailableQuantity--
+		if err := dbms.UpdateDiscount(&discount, discount.DiscountID); err != nil {
+			res.ERROR(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		if discount.AvailableQuantity == 0 || time.Now().After(discount.EndDate) {
+			if err := dbms.DeleteDiscount(&discount, discount.DiscountID); err != nil {
+				res.ERROR(w, http.StatusInternalServerError, err)
+				return
+			}
+		}
+	}
+
 	newOrder := models.Order{
 		UserID:          userID,
 		OrderDate:       time.Now(),
@@ -156,6 +186,8 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	updateUserStatsAndCheckDiscount(tx, user, createdOrder)
+
 	tx.Commit()
 
 	for _, cartItem := range cartItems {
@@ -180,4 +212,91 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	res.JSON(w, http.StatusCreated, responseData)
 
+}
+
+func updateUserStatsAndCheckDiscount(tx *gorm.DB, user *models.User, order *models.Order) {
+	user.OrderCount++
+	user.TotalSpent += int32(order.GrandTotal)
+
+	UpdateLevelAndCheckDiscount(tx, user)
+}
+
+func UpdateLevelAndCheckDiscount(tx *gorm.DB, user *models.User) error {
+	currentTime := time.Now()
+
+	if user.LastLevelUpdate.Before(time.Date(currentTime.Year(), 1, 1, 0, 0, 0, 0, time.UTC)) && currentTime.Before(time.Date(currentTime.Year(), 6, 30, 23, 59, 59, 999999999, time.UTC)) {
+		if user.OrderCount >= 3 && user.TotalSpent >= 1000000 && user.CurrentLevel == models.Bronze {
+			user.CurrentLevel = models.Silver
+			user.NextLevel = models.Gold
+			discount, err := discount_handle.CreateAutomaticDiscountForUpgrade(user)
+			if err != nil {
+				return err
+			}
+			err = SendOrderStatusUpdateEmail(user.Email, string(user.CurrentLevel), discount.DiscountCode)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if user.LastLevelUpdate.Before(time.Date(currentTime.Year(), 7, 1, 0, 0, 0, 0, time.UTC)) && currentTime.Before(time.Date(currentTime.Year(), 12, 31, 23, 59, 59, 999999999, time.UTC)) {
+		if user.OrderCount >= 20 && user.TotalSpent >= 5000000 && user.CurrentLevel == models.Silver {
+			user.CurrentLevel = models.Gold
+			user.NextLevel = models.Diamond
+			discount, err := discount_handle.CreateAutomaticDiscountForUpgrade(user)
+			if err != nil {
+				return err
+			}
+			err = SendOrderStatusUpdateEmail(user.Email, string(user.CurrentLevel), discount.DiscountCode)
+			if err != nil {
+				return err
+			}
+		}
+
+		if user.OrderCount >= 75 && user.TotalSpent >= 15000000 && user.CurrentLevel == models.Gold {
+			user.CurrentLevel = models.Diamond
+			user.NextLevel = ""
+			discount, err := discount_handle.CreateAutomaticDiscountForUpgrade(user)
+			if err != nil {
+				return err
+			}
+			err = SendOrderStatusUpdateEmail(user.Email, string(user.CurrentLevel), discount.DiscountCode)
+			if err != nil {
+				return err
+			}
+		}
+
+		if err := dbms.UpdateUserLevel(tx, user, user.UserID); err != nil {
+			return err
+		}
+	}
+
+	user.LastLevelUpdate = currentTime
+
+	if err := dbms.UpdateUserLevel(tx, user, user.UserID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SendOrderStatusUpdateEmail(email, currentLevel string, discount string) error {
+	emailAddress := "pau30012002@gmail.com"
+	emailPassword := "pljf fqgx yycq ynhq"
+	subject := "Order Status Update"
+	body := fmt.Sprintf("Congratulations on achieving %s membership, Double 2C will send you a discount code [%s]!", currentLevel, discount)
+
+	m := gomail.NewMessage()
+	m.SetHeader("From", emailAddress)
+	m.SetHeader("To", email)
+	m.SetHeader("Subject", subject)
+	m.SetBody("text/html", body)
+
+	dialer := gomail.NewDialer("smtp.gmail.com", 587, emailAddress, emailPassword)
+
+	if err := dialer.DialAndSend(m); err != nil {
+		return err
+	}
+
+	return nil
 }
