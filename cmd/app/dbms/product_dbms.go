@@ -69,21 +69,14 @@ func deleteOrderDetailByProductID(productID int32) error {
 	return database.Db.Where("product_id = ?", productID).Delete(&models.OrderDetail{}).Error
 }
 
-func GetListProduct(page int32, pageSize int32) ([]*models.Product, int64, error) {
-	offset := (int64(page) - 1) * int64(pageSize)
+func GetListProduct() ([]*models.Product, error) {
 	products := []*models.Product{}
-	var totalCount int64
 
-	if err := database.Db.Model(&models.Product{}).Count(&totalCount).Error; err != nil {
-		return nil, 0, err
-	}
-
-	err := database.Db.Offset(int(offset)).Limit(int(pageSize)).Find(&products).Error
+	err := database.Db.Find(&products).Error
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
-
-	return products, totalCount, nil
+	return products, nil
 }
 
 func GetListProductByCategoryId(categoryID int, page int32, pageSize int32) ([]*models.Product, int64, error) {

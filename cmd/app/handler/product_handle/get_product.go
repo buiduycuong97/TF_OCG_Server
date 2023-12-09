@@ -87,31 +87,14 @@ func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetListProducts(w http.ResponseWriter, r *http.Request) {
-	pageStr := r.URL.Query().Get("page")
-	pageSizeStr := r.URL.Query().Get("pageSize")
 
-	page, err := strconv.ParseInt(pageStr, 10, 32)
-	if err != nil || page <= 0 {
-		page = 1
-	}
-
-	pageSize, err := strconv.ParseInt(pageSizeStr, 10, 32)
-	if err != nil || pageSize <= 0 {
-		pageSize = 10
-	}
-
-	products, totalCount, err := dbms.GetListProduct(int32(page), int32(pageSize))
+	products, err := dbms.GetListProduct()
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	response := map[string]interface{}{
-		"products":   products,
-		"totalPages": utils_handle.CalculateTotalPages(totalCount, int32(pageSize)),
-	}
-
-	res.JSON(w, http.StatusOK, response)
+	res.JSON(w, http.StatusOK, products)
 }
 
 func GetListProductByCategoryId(w http.ResponseWriter, r *http.Request) {
