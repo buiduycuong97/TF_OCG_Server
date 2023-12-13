@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"github.com/gorilla/mux"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/dto/product_dto/response"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
+	"tf_ocg/utils"
 )
 
 func UpdateProduct(w http.ResponseWriter, r *http.Request) {
@@ -41,6 +43,29 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	productData, err := convertProductToString(product)
+	if err != nil {
+		log.Println("Lỗi chuyển đổi dữ liệu sản phẩm thành JSON: ", err)
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = utils.SetProductToCache(redisClient, product.Handle, productData)
+	if err != nil {
+		log.Println("Lưu sản phẩm vào cache thất bại: ", err)
+	}
+
+	products, err := dbms.GetListProduct()
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+	cacheKey := "list_products"
+	err = utils.SetListProductsToCache(redisClient, cacheKey, products)
+	if err != nil {
+		log.Println("Lưu danh sách sản phẩm vào cache thất bại: ", err)
+	}
+
 	productResponse := response.ProductResponseUpdate{
 		ProductID:   product.ProductID,
 		Handle:      product.Handle,
@@ -53,27 +78,3 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	res.JSON(w, http.StatusOK, productResponse)
 }
-
-//
-//func UpdateProductQuantityHandler(w http.ResponseWriter, r *http.Request) {
-//	vars := mux.Vars(r)
-//	productID, err := strconv.ParseInt(vars["id"], 10, 32)
-//	if err != nil {
-//		res.ERROR(w, http.StatusBadRequest, err)
-//		return
-//	}
-//
-//	quantity, err := strconv.Atoi(r.FormValue("quantity"))
-//	if err != nil {
-//		res.ERROR(w, http.StatusBadRequest, err)
-//		return
-//	}
-//
-//	err = dbms.UpdateProductQuantity(int32(productID), int32(quantity))
-//	if err != nil {
-//		res.ERROR(w, http.StatusInternalServerError, err)
-//		return
-//	}
-//
-//	res.JSON(w, http.StatusOK, map[string]string{"message": "Product quantity updated successfully"})
-//}

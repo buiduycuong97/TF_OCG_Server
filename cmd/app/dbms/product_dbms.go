@@ -1,9 +1,19 @@
 package dbms
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/elastic/go-elasticsearch/v8"
+	"gorm.io/gorm"
+	"io"
+	"log"
+	"strconv"
+	"strings"
 	database "tf_ocg/pkg/database_manager"
 	"tf_ocg/proto/models"
+	"tf_ocg/utils"
 	"time"
 )
 
@@ -11,16 +21,103 @@ func CreateProduct(product *models.Product) (*models.Product, error) {
 	existingProduct := &models.Product{}
 	database.Db.Raw("SELECT * FROM products WHERE title = ?", product.Title).Scan(existingProduct)
 	if existingProduct.Handle == product.Handle {
-		return nil, errors.New("Product title already exist")
+		return nil, errors.New("Product title already exists")
 	}
+
 	now := time.Now()
 	product.CreatedAt = now
 	product.UpdatedAt = now
-	err := database.Db.Create(product).Error
-	if err != nil {
+	tx := database.Db.Begin()
+	if err := tx.Create(product).Error; err != nil {
+		tx.Rollback()
 		return nil, err
 	}
+
+	if err := IndexProductES(utils.EsClient, product); err != nil {
+		tx.Rollback()
+		return nil, err
+	}
+
+	tx.Commit()
 	return product, nil
+}
+
+func IndexProductES(esClient *elasticsearch.Client, product *models.Product) error {
+	indexData := map[string]interface{}{
+		"productId":   product.ProductID,
+		"handle":      product.Handle,
+		"title":       product.Title,
+		"description": convertToValidJSON(cleanDescription(product.Description)),
+		"price":       product.Price,
+		"categoryID":  product.CategoryID,
+		"image":       product.Image,
+		"created_at":  product.CreatedAt,
+		"updated_at":  product.UpdatedAt,
+	}
+
+	indexJSON, err := json.Marshal(map[string]interface{}{"index": map[string]interface{}{"_index": "products", "_id": product.ProductID}})
+	if err != nil {
+		log.Printf("Error marshalling index request to JSON: %s", err)
+		return err
+	}
+
+	dataJSON, err := json.Marshal(indexData)
+	if err != nil {
+		log.Printf("Error marshalling product data to JSON: %s", err)
+		return err
+	}
+
+	bulkRequestBody := []string{string(indexJSON), string(dataJSON)}
+
+	bulkRequestString := strings.Join(bulkRequestBody, "\n") + "\n"
+
+	resp, err := esClient.Bulk(strings.NewReader(bulkRequestString))
+	if err != nil {
+		log.Printf("Error sending bulk request to Elasticsearch: %s", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading Elasticsearch response body: %s", err)
+		return err
+	}
+
+	if resp.IsError() {
+		log.Printf("Elasticsearch responded with error: %s", resp.Status())
+		log.Printf("Response body: %s", body)
+		return errors.New("Elasticsearch response error")
+	}
+
+	log.Printf("Indexing completed for product with ID %d", product.ProductID)
+	return nil
+}
+
+func cleanDescription(description string) string {
+	cleaned := strings.Map(func(r rune) rune {
+		if r == '"' || r == '\'' || r == ',' {
+			return -1
+		}
+		return r
+	}, description)
+
+	return cleaned
+}
+
+func convertToValidJSON(description string) string {
+	type DescriptionJSON struct {
+		Description string `json:"description"`
+	}
+
+	descJSON := DescriptionJSON{Description: description}
+	jsonBytes, err := json.Marshal(descJSON)
+	if err != nil {
+		fmt.Printf("Error marshalling JSON: %v\n", err)
+		return ""
+	}
+
+	return string(jsonBytes)
 }
 
 func GetProductById(product *models.Product, id int32) (err error) {
@@ -40,33 +137,144 @@ func GetProductByHandle(product *models.Product, handle string) (err error) {
 }
 
 func UpdateProduct(updatedProduct *models.Product, id int32) error {
-	database.Db.Model(updatedProduct).Where("product_id = ?", id).Updates(updatedProduct)
+	tx := database.Db.Begin()
+
+	if err := tx.Model(updatedProduct).Where("product_id = ?", id).Updates(updatedProduct).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := UpdateProductES(utils.EsClient, updatedProduct); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
+}
+
+func UpdateProductES(esClient *elasticsearch.Client, product *models.Product) error {
+	updateData := map[string]interface{}{
+		"doc": map[string]interface{}{
+			"handle":      product.Handle,
+			"title":       product.Title,
+			"description": convertToValidJSON(cleanDescription(product.Description)),
+			"price":       product.Price,
+			"categoryID":  product.CategoryID,
+			"image":       product.Image,
+			"created_at":  product.CreatedAt,
+			"updated_at":  product.UpdatedAt,
+		},
+	}
+
+	updateJSON, err := json.Marshal(updateData)
+	if err != nil {
+		log.Printf("Error marshalling update request to JSON: %s", err)
+		return err
+	}
+
+	resp, err := esClient.Update(
+		"products",
+		strconv.Itoa(int(product.ProductID)),
+		strings.NewReader(string(updateJSON)),
+		esClient.Update.WithContext(context.Background()),
+		esClient.Update.WithRefresh("true"),
+	)
+
+	if err != nil {
+		log.Printf("Error sending update request to Elasticsearch: %s", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading Elasticsearch response body: %s", err)
+		return err
+	}
+
+	if resp.IsError() {
+		log.Printf("Elasticsearch responded with error: %s", resp.Status())
+		log.Printf("Response body: %s", body)
+		return errors.New("Elasticsearch response error")
+	}
+
+	log.Printf("Update completed for product with ID %d in Elasticsearch", product.ProductID)
 	return nil
 }
 
 func DeleteProduct(product *models.Product, id int32) error {
-	if err := deleteReviewsByProductID(id); err != nil {
+	tx := database.Db.Begin()
+
+	if err := deleteReviewsByProductID(tx, id); err != nil {
+		tx.Rollback()
 		return err
 	}
-	if err := deleteCartItemByProductID(id); err != nil {
+
+	if err := deleteCartItemByProductID(tx, id); err != nil {
+		tx.Rollback()
 		return err
 	}
-	if err := deleteOrderDetailByProductID(id); err != nil {
+
+	if err := deleteOrderDetailByProductID(tx, id); err != nil {
+		tx.Rollback()
 		return err
 	}
-	return database.Db.Where("product_id = ?", id).Delete(product).Error
+
+	if err := DeleteProductES(utils.EsClient, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Where("product_id = ?", id).Delete(product).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	tx.Commit()
+	return nil
 }
 
-func deleteCartItemByProductID(productID int32) error {
-	return database.Db.Where("product_id = ?", productID).Delete(&models.Cart{}).Error
+func DeleteProductES(esClient *elasticsearch.Client, id int32) error {
+	resp, err := esClient.Delete(
+		"products",
+		strconv.Itoa(int(id)),
+		esClient.Delete.WithContext(context.Background()),
+		esClient.Delete.WithRefresh("true"),
+	)
+
+	if err != nil {
+		log.Printf("Error sending delete request to Elasticsearch: %s", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		log.Printf("Error reading Elasticsearch response body: %s", err)
+		return err
+	}
+
+	if resp.IsError() {
+		log.Printf("Elasticsearch responded with error: %s", resp.Status())
+		log.Printf("Response body: %s", body)
+		return errors.New("Elasticsearch response error")
+	}
+
+	log.Printf("Delete completed for product with ID %d in Elasticsearch", id)
+	return nil
 }
 
-func deleteReviewsByProductID(productID int32) error {
-	return database.Db.Where("product_id = ?", productID).Delete(&models.Review{}).Error
+func deleteCartItemByProductID(tx *gorm.DB, productID int32) error {
+	return tx.Where("product_id = ?", productID).Delete(&models.Cart{}).Error
 }
 
-func deleteOrderDetailByProductID(productID int32) error {
-	return database.Db.Where("product_id = ?", productID).Delete(&models.OrderDetail{}).Error
+func deleteReviewsByProductID(tx *gorm.DB, productID int32) error {
+	return tx.Where("product_id = ?", productID).Delete(&models.Review{}).Error
+}
+
+func deleteOrderDetailByProductID(tx *gorm.DB, productID int32) error {
+	return tx.Where("product_id = ?", productID).Delete(&models.OrderDetail{}).Error
 }
 
 func GetListProduct() ([]*models.Product, error) {
@@ -138,4 +346,147 @@ func GetProductByID(productID int32) (models.Product, error) {
 	var product models.Product
 	err := database.Db.First(&product, productID).Error
 	return product, err
+}
+
+func SearchProductES(
+	esClient *elasticsearch.Client,
+	searchText string,
+	categoryIDs []int32,
+	priceFrom, priceTo string,
+	page, pageSize int32,
+	typeSort, fieldSort string,
+) (products []models.Product, totalItems int, err error) {
+	query := buildElasticsearchQuery(searchText, categoryIDs, priceFrom, priceTo, page, pageSize, typeSort, fieldSort)
+	res, err := esClient.Search(
+		esClient.Search.WithIndex("products"),
+		esClient.Search.WithBody(strings.NewReader(query)),
+		esClient.Search.WithContext(context.Background()),
+		esClient.Search.WithTrackTotalHits(true),
+	)
+
+	if err != nil {
+		log.Printf("Error performing Elasticsearch search: %s", err)
+		return nil, 0, err
+	}
+	defer func() {
+		if closeErr := res.Body.Close(); closeErr != nil {
+			log.Printf("Error closing response body: %s", closeErr)
+		}
+	}()
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&response); err != nil {
+		log.Printf("Error decoding response: %v", err)
+		return nil, 0, err
+	}
+
+	if res.IsError() {
+		log.Printf("Response body: %v", response)
+
+		return nil, 0, errors.New("Elasticsearch response error")
+	}
+
+	hits, _ := response["hits"].(map[string]interface{})
+	totalItems = int(hits["total"].(map[string]interface{})["value"].(float64))
+
+	hitsArray, _ := hits["hits"].([]interface{})
+	for _, hit := range hitsArray {
+		source, _ := hit.(map[string]interface{})["_source"].(map[string]interface{})
+
+		createdAt, _ := convertToTime(source["created_at"].(string))
+		updatedAt, _ := convertToTime(source["updated_at"].(string))
+
+		product := models.Product{
+			ProductID:   int32(source["productId"].(float64)),
+			Handle:      source["handle"].(string),
+			Title:       source["title"].(string),
+			Description: source["description"].(string),
+			Price:       source["price"].(float64),
+			CategoryID:  int(source["categoryID"].(float64)),
+			Image:       source["image"].(string),
+			CreatedAt:   createdAt,
+			UpdatedAt:   updatedAt,
+		}
+
+		products = append(products, product)
+	}
+
+	return products, totalItems, nil
+}
+
+func buildElasticsearchQuery(
+	searchText string,
+	categoryIDs []int32,
+	priceFrom, priceTo string,
+	page, pageSize int32,
+	typeSort, fieldSort string,
+) string {
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"must": []map[string]interface{}{},
+			},
+		},
+		"size": pageSize,
+		"from": int(page-1) * int(pageSize),
+	}
+
+	if searchText != "" {
+		query["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"] = append(
+			query["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"].([]map[string]interface{}),
+			map[string]interface{}{
+				"match": map[string]interface{}{
+					"title": searchText,
+				},
+			},
+		)
+	}
+
+	if len(categoryIDs) > 0 {
+		categoryFilter := map[string]interface{}{
+			"terms": map[string]interface{}{
+				"categoryID": categoryIDs,
+			},
+		}
+		query["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"] = append(
+			query["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"].([]map[string]interface{}),
+			categoryFilter,
+		)
+	}
+
+	if priceFrom != "" && priceTo != "" {
+		priceRangeFilter := map[string]interface{}{
+			"range": map[string]interface{}{
+				"price": map[string]interface{}{
+					"gte": priceFrom,
+					"lte": priceTo,
+				},
+			},
+		}
+		query["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"] = append(
+			query["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"].([]map[string]interface{}),
+			priceRangeFilter,
+		)
+	}
+
+	if fieldSort != "" && typeSort != "" {
+		sort := map[string]interface{}{
+			fieldSort: map[string]interface{}{
+				"order": typeSort,
+			},
+		}
+		query["sort"] = []interface{}{sort}
+	}
+
+	queryJSON, _ := json.Marshal(query)
+	return string(queryJSON)
+}
+
+func convertToTime(timestamp string) (time.Time, error) {
+	layout := "2006-01-02T15:04:05.999Z"
+	parsedTime, err := time.Parse(layout, timestamp)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return parsedTime, nil
 }

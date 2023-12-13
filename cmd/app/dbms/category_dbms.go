@@ -44,6 +44,15 @@ func GetListCategory(page int32, pageSize int32) ([]*models.Categories, int64, e
 	return categories, totalCount, nil
 }
 
+func GetAllCategories() ([]*models.Categories, error) {
+	categories := []*models.Categories{}
+
+	if err := database.Db.Find(&categories).Error; err != nil {
+		return nil, err
+	}
+	return categories, nil
+}
+
 func UpdateCategory(updatedCategory *models.Categories, id int32) error {
 	database.Db.Model(updatedCategory).Where("category_id = ?", id).Updates(updatedCategory)
 	return nil

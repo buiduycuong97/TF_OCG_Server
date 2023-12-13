@@ -8,11 +8,6 @@ import (
 	"os"
 )
 
-// const DB_USERNAME = "sql12662305"
-// const DB_PASSWORD = "juB5hiHp6b"
-// const DB_NAME = "sql12662305"
-// const DB_HOST = "sql12.freesqldatabase.com"
-
 var Db *gorm.DB
 
 func InitDb() *gorm.DB {

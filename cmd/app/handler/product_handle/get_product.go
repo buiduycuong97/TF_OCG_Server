@@ -1,8 +1,11 @@
 package product_handle
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/gorilla/mux"
+	"github.com/redis/go-redis/v9"
+	"log"
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
@@ -12,22 +15,71 @@ import (
 	"tf_ocg/cmd/app/handler/utils_handle"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
+	"tf_ocg/utils"
 )
 
-// get user by id
+var redisClient *redis.Client // Declare the Redis client
+
+func SetRedisClient(client *redis.Client) {
+	redisClient = client
+}
+
+func convertProductToString(product models.Product) (string, error) {
+	jsonData, err := json.Marshal(product)
+	if err != nil {
+		return "", err
+	}
+
+	jsonString := string(jsonData)
+
+	return jsonString, nil
+}
+
+func convertProductHandleToString(product response.ProductWithOptionResponse) (string, error) {
+	jsonData, err := json.Marshal(product)
+	if err != nil {
+		return "", err
+	}
+
+	jsonString := string(jsonData)
+
+	return jsonString, nil
+}
+
 func GetProduct(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	pid, err := strconv.ParseUint(vars["id"], 10, 32)
-	pid32 := int32(pid)
+	productID := vars["id"]
+
+	cachedData, err := utils.GetProductFromCache(redisClient, productID)
+	if err == nil {
+		res.JSON(w, http.StatusOK, cachedData)
+		return
+	}
+
+	var product models.Product
+
+	parsedProductID, err := strconv.ParseInt(productID, 10, 32)
 	if err != nil {
 		res.ERROR(w, http.StatusBadRequest, err)
 		return
 	}
-	var product models.Product
-	err = dbms.GetProductById(&product, pid32)
+
+	err = dbms.GetProductById(&product, int32(parsedProductID))
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
+	}
+
+	productData, err := convertProductToString(product)
+	if err != nil {
+		log.Println("Lỗi chuyển đổi dữ liệu sản phẩm thành JSON: ", err)
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = utils.SetProductToCache(redisClient, productID, productData)
+	if err != nil {
+		log.Println("Lưu sản phẩm vào cache thất bại: ", err)
 	}
 
 	res.JSON(w, http.StatusOK, product)
@@ -36,22 +88,25 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
 	handle := r.URL.Query().Get("handle")
 
-	// Fetch the product by handle
+	cachedData, err := utils.GetProductHandleFromCache(redisClient, handle)
+	if err == nil {
+		res.JSON(w, http.StatusOK, cachedData)
+		return
+	}
+
 	var product models.Product
-	err := dbms.GetProductByHandle(&product, handle)
+	err = dbms.GetProductByHandle(&product, handle)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Fetch option products related to the product
 	optionProducts, err := dbms.GetListOptionProductByProductID(product.ProductID)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	// Populate option values for each option set
 	var optionProductsResponse []option_product_response.OptionProductResponse
 	for _, optionSet := range optionProducts {
 		var optionValuesResponse []option_value_response.OptionValueResponse
@@ -77,21 +132,43 @@ func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	// Create the final response structure
 	result := response.ProductWithOptionResponse{
 		Product:        product,
 		OptionProducts: optionProductsResponse,
+	}
+
+	productData, err := convertProductHandleToString(result)
+	if err != nil {
+		log.Println("Lỗi chuyển đổi dữ liệu sản phẩm thành JSON: ", err)
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = utils.SetProductToCache(redisClient, handle, productData)
+	if err != nil {
+		log.Println("Lưu sản phẩm vào cache thất bại: ", err)
 	}
 
 	res.JSON(w, http.StatusOK, result)
 }
 
 func GetListProducts(w http.ResponseWriter, r *http.Request) {
+	cacheKey := "list_products"
+	cachedData, err := utils.GetListProductsFromCache(redisClient, cacheKey)
+	if err == nil {
+		res.JSON(w, http.StatusOK, cachedData)
+		return
+	}
 
 	products, err := dbms.GetListProduct()
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
+	}
+
+	err = utils.SetListProductsToCache(redisClient, cacheKey, products)
+	if err != nil {
+		log.Println("Lưu danh sách sản phẩm vào cache thất bại: ", err)
 	}
 
 	res.JSON(w, http.StatusOK, products)
@@ -130,10 +207,10 @@ func GetListProductByCategoryId(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	response := map[string]interface{}{
+	result := map[string]interface{}{
 		"products":   products,
 		"totalPages": utils_handle.CalculateTotalPages(totalCount, int32(pageSize)),
 	}
 
-	res.JSON(w, http.StatusOK, response)
+	res.JSON(w, http.StatusOK, result)
 }

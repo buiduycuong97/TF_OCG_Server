@@ -1,12 +1,20 @@
 package product_handle
 
 import (
+	"crypto/tls"
 	"net/http"
 	"strconv"
 	"strings"
 	"tf_ocg/cmd/app/dbms"
 	res "tf_ocg/pkg/response_api"
+	"tf_ocg/utils"
+
+	"github.com/elastic/go-elasticsearch/v8"
 )
+
+func SetElasticsearchClient(client *elasticsearch.Client) {
+	utils.EsClient = client
+}
 
 func SearchProducts(w http.ResponseWriter, r *http.Request) {
 	searchText := r.URL.Query().Get("searchText")
@@ -18,9 +26,28 @@ func SearchProducts(w http.ResponseWriter, r *http.Request) {
 	typeSort := r.URL.Query().Get("typeSort")
 	fieldSort := r.URL.Query().Get("fieldSort")
 
-	var categories []string
+	var handleStrs []string
+	var categoryIDs []int32
+
 	if categoryStr != "" {
-		categories = strings.Split(categoryStr, ",")
+		handleStrs = strings.Split(categoryStr, ",")
+
+		allCategories, err := dbms.GetAllCategories()
+		if err != nil {
+			res.ERROR(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		categoryIDMap := make(map[string]int32)
+		for _, cat := range allCategories {
+			categoryIDMap[cat.Handle] = cat.CategoryID
+		}
+
+		for _, handle := range handleStrs {
+			if categoryID, found := categoryIDMap[handle]; found {
+				categoryIDs = append(categoryIDs, categoryID)
+			}
+		}
 	}
 
 	page, err := strconv.ParseInt(pageStr, 10, 32)
@@ -33,7 +60,24 @@ func SearchProducts(w http.ResponseWriter, r *http.Request) {
 		pageSize = 10
 	}
 
-	products, totalItems, err := dbms.SearchProduct(searchText, categories, priceFrom, priceTo, int32(page), int32(pageSize), typeSort, fieldSort)
+	esCfg := elasticsearch.Config{
+		Addresses: []string{"https://localhost:9200"},
+		Username:  "elastic",
+		Password:  "hO_W*DpdJZl--v1hX7fQ",
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	esClient, err := elasticsearch.NewClient(esCfg)
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	products, totalItems, err := dbms.SearchProductES(esClient, searchText, categoryIDs, priceFrom, priceTo, int32(page), int32(pageSize), typeSort, fieldSort)
 
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)

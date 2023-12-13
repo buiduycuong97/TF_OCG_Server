@@ -1,6 +1,7 @@
 package utils_handle
 
 import (
+	"crypto/tls"
 	"fmt"
 	"github.com/streadway/amqp"
 	"gopkg.in/gomail.v2"
@@ -64,7 +65,10 @@ func SendDiscountMessagesToRabbitMQ(discounts []models.Discount) error {
 }
 
 func HandleRabbitMQMessages() {
-	conn, err := amqp.Dial("amqps://ithkfqls:w4d4HaTpn_cDiod1r9BOT-CSZON1gYVF@octopus.rmq3.cloudamqp.com/ithkfqls")
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true,
+	}
+	conn, err := amqp.DialTLS("amqps://ithkfqls:w4d4HaTpn_cDiod1r9BOT-CSZON1gYVF@octopus.rmq3.cloudamqp.com/ithkfqls", tlsConfig)
 	if err != nil {
 		log.Fatal(err)
 		return
