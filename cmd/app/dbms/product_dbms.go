@@ -24,6 +24,7 @@ func CreateProduct(product *models.Product) (*models.Product, error) {
 }
 
 func GetProductById(product *models.Product, id int32) (err error) {
+
 	err = database.Db.Where("product_id = ?", id).Find(product).Error
 	if err != nil {
 		return err
@@ -45,15 +46,15 @@ func UpdateProduct(updatedProduct *models.Product, id int32) error {
 }
 
 func DeleteProduct(product *models.Product, id int32) error {
-	if err := deleteReviewsByProductID(id); err != nil {
-		return err
-	}
-	if err := deleteCartItemByProductID(id); err != nil {
-		return err
-	}
-	if err := deleteOrderDetailByProductID(id); err != nil {
-		return err
-	}
+	//if err := deleteReviewsByProductID(id); err != nil {
+	//	return err
+	//}
+	//if err := deleteCartItemByProductID(id); err != nil {
+	//	return err
+	//}
+	//if err := deleteOrderDetailByProductID(id); err != nil {
+	//	return err
+	//}
 	return database.Db.Where("product_id = ?", id).Delete(product).Error
 }
 
@@ -72,7 +73,7 @@ func deleteOrderDetailByProductID(productID int32) error {
 func GetListProduct() ([]*models.Product, error) {
 	products := []*models.Product{}
 
-	err := database.Db.Find(&products).Error
+	err := database.Db.Order("created_at desc").Find(&products).Error
 	if err != nil {
 		return nil, err
 	}

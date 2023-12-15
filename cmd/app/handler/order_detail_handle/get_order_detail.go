@@ -2,7 +2,6 @@ package order_detail_handle
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -11,11 +10,9 @@ import (
 	responseproduct "tf_ocg/cmd/app/dto/product_dto/response"
 	responseuser "tf_ocg/cmd/app/dto/user_dto/response"
 	responsevariant "tf_ocg/cmd/app/dto/variant_dto/response"
-	"tf_ocg/cmd/app/handler/utils_handle"
-	res "tf_ocg/pkg/response_api"
 )
 
-func GetOrderInfo(orderID int32, userID int32) (response.OrderInfo, error) {
+func GetOrderInfo(orderID int32) (response.OrderInfo, error) {
 	order, err := dbms.GetOrderByID(orderID)
 	if err != nil {
 		return response.OrderInfo{}, err
@@ -28,7 +25,7 @@ func GetOrderInfo(orderID int32, userID int32) (response.OrderInfo, error) {
 
 	var orderDetailsInfo []response.OrderDetailInfo
 	for _, orderDetail := range orderDetails {
-		user, err := dbms.GetUserByID(userID)
+		user, err := dbms.GetUserByID(order.UserID)
 		if err != nil {
 			return response.OrderInfo{}, err
 		}
@@ -105,13 +102,7 @@ func GetOrderInfoHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID, err := utils_handle.GetUserIDFromRequest(r)
-	if err != nil {
-		res.ERROR(w, http.StatusUnauthorized, errors.New("Invalid token"))
-		return
-	}
-
-	orderInfo, err := GetOrderInfo(int32(orderID), userID)
+	orderInfo, err := GetOrderInfo(int32(orderID))
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error retrieving order information: %v", err), http.StatusInternalServerError)
 		return
