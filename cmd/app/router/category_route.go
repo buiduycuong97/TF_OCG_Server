@@ -11,8 +11,8 @@ func SetupCategoryRoutes(r *mux.Router) {
 	authAdminMiddleware := middleware.AuthAdmin
 
 	r.HandleFunc("", authAdminMiddleware(category.CreateCategory)).Methods("POST")
-	r.HandleFunc("", authMiddleware(category.GetListCategories)).Methods("GET")
-	r.HandleFunc("/{id}", authMiddleware(category.GetCategory)).Methods("GET")
+	r.HandleFunc("", category.GetListCategories).Methods("GET")
+	r.HandleFunc("/{id}", category.GetCategory).Methods("GET")
 	r.HandleFunc("/{id}", authAdminMiddleware(category.UpdateCategory)).Methods("PUT")
 	r.HandleFunc("/{id}", authAdminMiddleware(category.DeleteCategory)).Methods("DELETE")
 	r.HandleFunc("/search", authMiddleware(category.SearchCategories)).Methods("GET")

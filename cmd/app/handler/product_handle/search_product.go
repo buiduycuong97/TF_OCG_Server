@@ -63,7 +63,7 @@ func SearchProducts(w http.ResponseWriter, r *http.Request) {
 	esCfg := elasticsearch.Config{
 		Addresses: []string{"https://localhost:9200"},
 		Username:  "elastic",
-		Password:  "hO_W*DpdJZl--v1hX7fQ",
+		Password:  "Ksckb67MQwA-frPDAA7+",
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,

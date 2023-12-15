@@ -14,6 +14,7 @@ import (
 
 func SendDiscountMessagesToRabbitMQ(discounts []models.Discount) error {
 	conn, err := amqp.Dial("amqps://ithkfqls:w4d4HaTpn_cDiod1r9BOT-CSZON1gYVF@octopus.rmq3.cloudamqp.com/ithkfqls")
+	//conn, err := amqp.Dial("amqp://localhost:5672") // Use plain AMQP
 	if err != nil {
 		return err
 	}
@@ -68,7 +69,8 @@ func HandleRabbitMQMessages() {
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
 	}
-	conn, err := amqp.DialTLS("amqps://ithkfqls:w4d4HaTpn_cDiod1r9BOT-CSZON1gYVF@octopus.rmq3.cloudamqp.com/ithkfqls", tlsConfig)
+
+	conn, err := amqp.DialTLS("amqps://ithkfqls:w4d4HaTpn_cDiod1r9BOT-CSZON1gYVF@octopus.rmq3.cloudamqp.com/ithkfqls", tlsConfig) // Use plain AMQP with TLS configuration
 	if err != nil {
 		log.Fatal(err)
 		return

@@ -13,10 +13,10 @@ func SetupProductRoutes(r *mux.Router) {
 	r.HandleFunc("", authAdminMiddleware(product.CreateProduct)).Methods("POST")
 	r.HandleFunc("", authAdminMiddleware(product.GetListProducts)).Methods("GET")
 	r.HandleFunc("/{id}", authMiddleware(product.GetProduct)).Methods("GET")
-	r.HandleFunc("/find-product/handle", authMiddleware(product.GetProductByHandle)).Methods("GET")
+	r.HandleFunc("/find-product/handle", product.GetProductByHandle).Methods("GET")
 	r.HandleFunc("/{id}", authAdminMiddleware(product.UpdateProduct)).Methods("PUT")
 	r.HandleFunc("/{id}", authAdminMiddleware(product.DeleteProduct)).Methods("DELETE")
 	r.HandleFunc("/category/get-list", authAdminMiddleware(product.GetListProductByCategoryId)).Methods("GET")
-	r.HandleFunc("/search/list", authMiddleware(product.SearchProducts)).Methods("GET")
+	r.HandleFunc("/search/list", product.SearchProducts).Methods("GET")
 
 }
