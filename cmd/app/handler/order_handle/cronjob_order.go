@@ -51,7 +51,7 @@ func sendOrderStatusUpdateEmail(email, orderID string) error {
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", body)
 
-	dialer := gomail.NewDialer("smtp.gmail.com", 587, emailAddress, emailPassword)
+	dialer := gomail.NewDialer("EMAIL_HOST", 587, emailAddress, emailPassword)
 
 	if err := dialer.DialAndSend(m); err != nil {
 		return err

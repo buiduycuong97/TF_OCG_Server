@@ -2,6 +2,7 @@ package order_handle
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
@@ -11,46 +12,6 @@ import (
 	"tf_ocg/proto/models"
 )
 
-//	func ViewOrderHandler(w http.ResponseWriter, r *http.Request) {
-//		orders, err := dbms.GetOrdersByStatus(models.CompleteTheOrder)
-//		if err != nil {
-//			res.ERROR(w, http.StatusInternalServerError, errors.New("Failed to get orders"))
-//			return
-//		}
-//
-//		var orderResponses []order_response.OrderResponse
-//		for _, order := range orders {
-//			orderDetails, err := dbms.GetOrderDetailsByOrderID(order.OrderID)
-//			if err != nil {
-//				res.ERROR(w, http.StatusInternalServerError, errors.New("Failed to get order details"))
-//				return
-//			}
-//
-//			orderResponse := order_response.OrderResponse{
-//				OrderID:         order.OrderID,
-//				UserID:          order.UserID,
-//				OrderDate:       order.OrderDate,
-//				ShippingAddress: order.ShippingAddress,
-//				Status:          order.Status,
-//				OrderDetails:    make([]order_detail_response.OrderDetailResponse, 0),
-//			}
-//
-//			for _, orderDetail := range orderDetails {
-//				orderDetailResponse := order_detail_response.OrderDetailResponse{
-//					OrderDetailID: orderDetail.OrderDetailID,
-//					ProductID:     orderDetail.ProductID,
-//					Quantity:      orderDetail.Quantity,
-//					Price:         orderDetail.Price,
-//				}
-//
-//				orderResponse.OrderDetails = append(orderResponse.OrderDetails, orderDetailResponse)
-//			}
-//
-//			orderResponses = append(orderResponses, orderResponse)
-//		}
-//
-//		res.JSON(w, http.StatusOK, orderResponses)
-//	}
 func ViewPendingOrdersHandler(w http.ResponseWriter, r *http.Request) {
 	viewOrdersByStatus(w, r, models.Pending)
 }
@@ -86,7 +47,6 @@ func viewOrdersByStatus(w http.ResponseWriter, r *http.Request, status models.Or
 		return
 	}
 
-	// Calculate totalPages
 	totalPages := int64(0)
 	if pageSize > 0 {
 		totalPages = (totalItem + pageSize - 1) / pageSize
@@ -116,6 +76,7 @@ func viewOrdersByStatus(w http.ResponseWriter, r *http.Request, status models.Or
 				VariantID:     orderDetail.VariantID,
 				Quantity:      orderDetail.Quantity,
 				Price:         orderDetail.Price,
+				VariantImage:  getImageByVariantID(orderDetail.VariantID),
 			}
 
 			orderResponse.OrderDetails = append(orderResponse.OrderDetails, orderDetailResponse)
@@ -132,6 +93,7 @@ func viewOrdersByStatus(w http.ResponseWriter, r *http.Request, status models.Or
 
 	res.JSON(w, http.StatusOK, response)
 }
+
 func calculateTotalPrice(orderDetails []models.OrderDetail) float64 {
 	var totalPrice float64
 
@@ -150,4 +112,13 @@ func GetAllOrder(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res.JSON(w, http.StatusOK, orders)
+}
+
+func getImageByVariantID(variantID int32) string {
+	image, err := dbms.GetImageByVariantID(variantID)
+	if err != nil {
+		fmt.Printf("Error getting image for variant ID %d: %v\n", variantID, err)
+		return ""
+	}
+	return image
 }

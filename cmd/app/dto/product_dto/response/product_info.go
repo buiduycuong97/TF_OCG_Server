@@ -11,6 +11,6 @@ type ProductInfo struct {
 	CategoryID        int       `json:"categoryID"`
 	QuantityRemaining int32     `json:"quantityRemaining"`
 	Image             string    `json:"image"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
 }

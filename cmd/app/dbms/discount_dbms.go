@@ -78,15 +78,25 @@ func DeleteDiscountAutoGen(discount *models.Discount, id int32) error {
 }
 
 func GetDiscountByDifferentCode(discount *models.Discount, discountCode string) error {
-	return database.Db.Where("discount_code = ? AND discount_code NOT IN (SELECT discount_code FROM user_discount WHERE discount_code = ?)", discountCode, discountCode).First(discount).Error
+	return database.Db.Where("discount_code = ? AND discount_code NOT IN (SELECT discount_code FROM user_discounts WHERE discount_code = ?)", discountCode, discountCode).First(discount).Error
 }
 
 func GetDiscountByDiscountCodeAndUserID(discount *models.Discount, discountCode string, userID int) error {
-	err := database.Db.
-		Joins("JOIN user_discounts ON discounts.discount_id = user_discounts.discount_id").
+	// Kiểm tra giá trị trong user_discounts theo user_id và discount_code
+	userDiscountErr := database.Db.
+		Joins("JOIN user_discounts ON user_discounts.discount_id = discounts.discount_id").
 		Where("discounts.discount_code = ? AND user_discounts.user_id = ?", discountCode, userID).
 		First(discount).
 		Error
 
-	return err
+	if userDiscountErr == nil {
+		// Giá trị tồn tại trong user_discounts, trả về mà không cần kiểm tra tiếp discounts
+		return nil
+	}
+
+	// Nếu giá trị không tồn tại trong user_discounts, kiểm tra trong discounts
+	discountErr := database.Db.Where("discount_code = ? AND discount_code NOT IN (SELECT discount_code FROM user_discounts WHERE discount_code = ?)", discountCode, discountCode).First(discount).Error
+
+	// Trả về giá trị discount ngay cả khi có lỗi
+	return discountErr
 }

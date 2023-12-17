@@ -32,8 +32,8 @@ func AddToCartHandler(w http.ResponseWriter, r *http.Request) {
 	quantity := requestBody.Quantity
 
 	// Kiểm tra số lượng trước khi thêm vào giỏ hàng
-	if !isQuantityValid(variantID, quantity) {
-		res.ERROR(w, http.StatusBadRequest, errors.New("Invalid quantity"))
+	if valid, message := isQuantityValidAdd(variantID, quantity); !valid {
+		res.JSON(w, http.StatusOK, map[string]string{"error": message})
 		return
 	}
 
@@ -46,12 +46,16 @@ func AddToCartHandler(w http.ResponseWriter, r *http.Request) {
 	res.JSON(w, http.StatusOK, cart)
 }
 
-func isQuantityValid(variantID, quantity int32) bool {
+func isQuantityValidAdd(variantID, quantity int32) (bool, string) {
 	var variant models.Variant
 	err := dbms.GetVariantById(&variant, variantID)
 	if err != nil {
-		return false
+		return false, "Failed to retrieve variant information"
 	}
 
-	return quantity <= variant.CountInStock
+	if quantity > variant.CountInStock {
+		return false, "Invalid quantity. Quantity exceeds available stock."
+	}
+
+	return true, ""
 }

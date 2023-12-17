@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/joho/godotenv"
 	"gopkg.in/gomail.v2"
 	"gorm.io/gorm"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/handler/discount_handle"
 	"tf_ocg/cmd/app/handler/utils_handle"
@@ -49,6 +51,12 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 	shippingAddress, ok := requestData["shippingAddress"].(string)
 	if !ok || shippingAddress == "" {
 		res.ERROR(w, http.StatusBadRequest, errors.New("Shipping address is required"))
+		return
+	}
+
+	phoneOrder, ok := requestData["phoneOrder"].(string)
+	if !ok || phoneOrder == "" {
+		res.ERROR(w, http.StatusBadRequest, errors.New("Phone order is required"))
 		return
 	}
 
@@ -128,6 +136,7 @@ func CheckoutHandler(w http.ResponseWriter, r *http.Request) {
 		UserID:          userID,
 		OrderDate:       time.Now(),
 		ShippingAddress: shippingAddress,
+		PhoneOrder:      phoneOrder,
 		Status:          models.Pending,
 		ProvinceID:      convertedProvinceID,
 		TotalQuantity:   convertedTotalQuantity,
@@ -281,8 +290,11 @@ func UpdateLevelAndCheckDiscount(tx *gorm.DB, user *models.User) error {
 }
 
 func SendOrderStatusUpdateEmail(email, currentLevel string, discount string) error {
-	emailAddress := "pau30012002@gmail.com"
-	emailPassword := "pljf fqgx yycq ynhq"
+	if err := godotenv.Load(); err != nil {
+		return err
+	}
+	emailAddress := os.Getenv("EMAIL_ADDRESS")
+	emailPassword := os.Getenv("EMAIL_PASSWORD")
 	subject := "Order Status Update"
 	body := fmt.Sprintf("Congratulations on achieving %s membership, Double 2C will send you a discount code [%s]!", currentLevel, discount)
 

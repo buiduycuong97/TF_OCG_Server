@@ -85,6 +85,7 @@ func GetOrderInfo(orderID int32, userID int32) (response.OrderInfo, error) {
 		UserID:          order.UserID,
 		OrderDate:       order.OrderDate,
 		ShippingAddress: order.ShippingAddress,
+		PhoneOrder:      order.PhoneOrder,
 		Status:          order.Status,
 		ProvinceID:      order.ProvinceID,
 		TotalQuantity:   order.TotalQuantity,
@@ -92,6 +93,7 @@ func GetOrderInfo(orderID int32, userID int32) (response.OrderInfo, error) {
 		DiscountAmount:  order.DiscountAmount,
 		GrandTotal:      order.GrandTotal,
 		OrderDetails:    orderDetailsInfo,
+		UpdatedAt:       order.UpdatedAt,
 	}
 
 	return orderInfo, nil

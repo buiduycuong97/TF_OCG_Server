@@ -26,7 +26,8 @@ func ClearCart(tx *gorm.DB, userID int32) error {
 func CreateOrder(tx *gorm.DB, order *models.Order) (*models.Order, error) {
 	now := time.Now()
 	order.OrderDate = now
-	order.CreatedAt = time.Now()
+	order.CreatedAt = now
+	order.UpdatedAt = now
 	order.Status = models.Pending
 
 	err := tx.Create(order).Error
@@ -37,10 +38,19 @@ func CreateOrder(tx *gorm.DB, order *models.Order) (*models.Order, error) {
 }
 
 func UpdateOrderStatus(orderID int32, status string) error {
-	err := database.Db.Model(&models.Order{}).Where("order_id = ?", orderID).Update("status", status).Error
+	now := time.Now()
+
+	err := database.Db.Model(&models.Order{}).
+		Where("order_id = ?", orderID).
+		Updates(map[string]interface{}{
+			"status":     status,
+			"updated_at": now,
+		}).Update("created_at", gorm.Expr("created_at")).Error
+
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 

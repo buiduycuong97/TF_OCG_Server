@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	goaway "github.com/TwiN/go-away"
+	"github.com/joho/godotenv"
 	"gopkg.in/gomail.v2"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/handler/utils_handle"
@@ -75,8 +77,12 @@ func sendSensitiveNotification(userID int32, message string) error {
 	if err != nil {
 		return err
 	}
-	emailAddress := "pau30012002@gmail.com"
-	emailPassword := "pljf fqgx yycq ynhq"
+	if err := godotenv.Load(); err != nil {
+		return err
+	}
+
+	emailAddress := os.Getenv("EMAIL_ADDRESS")
+	emailPassword := os.Getenv("EMAIL_PASSWORD")
 	subject := "Sensitive Content Notification"
 	body := message
 

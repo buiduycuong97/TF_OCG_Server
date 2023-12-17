@@ -10,5 +10,5 @@ type ProductResponseUpdate struct {
 	Price             float64   `json:"price"`
 	CategoryID        int       `json:"categoryID"`
 	QuantityRemaining int32     `json:"quantityRemaining"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	UpdatedAt         time.Time `json:"updatedAt"`
 }

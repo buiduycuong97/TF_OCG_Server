@@ -13,5 +13,5 @@ type OrderResponseList struct {
 	ShippingAddress string                                      `json:"shippingAddress"`
 	Status          models.OrderStatus                          `json:"status"`
 	OrderDetails    []order_detail_response.OrderDetailResponse `json:"orderDetails"`
-	TotalPrice      float64                                     `json:"totalPrice"` // Thêm trường TotalPrice
+	TotalPrice      float64                                     `json:"totalPrice"`
 }

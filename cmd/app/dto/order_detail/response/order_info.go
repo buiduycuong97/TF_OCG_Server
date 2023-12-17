@@ -10,6 +10,7 @@ type OrderInfo struct {
 	UserID          int32              `json:"userId"`
 	OrderDate       time.Time          `json:"orderDate"`
 	ShippingAddress string             `json:"shippingAddress"`
+	PhoneOrder      string             `json:"phoneOrder"`
 	Status          models.OrderStatus `json:"status"`
 	ProvinceID      int32              `json:"provinceId"`
 	TotalQuantity   int32              `json:"totalQuantity"`
@@ -18,4 +19,5 @@ type OrderInfo struct {
 	GrandTotal      float64            `json:"grandTotal"`
 	OrderDetails    []OrderDetailInfo  `json:"orderDetails"`
 	TotalPages      int                `json:"totalPages"`
+	UpdatedAt       time.Time          `json:"updatedAt"`
 }

@@ -8,5 +8,5 @@ type Review struct {
 	VariantID int32     `json:"variantID"`
 	Rating    int32     `json:"rating"`
 	Comment   string    `json:"comment"`
-	CreatedAt time.Time `json:"created_at"`
+	CreatedAt time.Time `json:"createdAt"`
 }

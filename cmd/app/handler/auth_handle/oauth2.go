@@ -5,12 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/joho/godotenv"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"gopkg.in/gomail.v2"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/dto/user_dto/request"
 	"tf_ocg/pkg/response_api"
@@ -185,8 +187,12 @@ func HandleResetPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func sendResetPasswordEmail(email, resetToken string) error {
-	emailAddress := "pau30012002@gmail.com"
-	emailPassword := "pljf fqgx yycq ynhq"
+	if err := godotenv.Load(); err != nil {
+		return err
+	}
+
+	emailAddress := os.Getenv("EMAIL_ADDRESS")
+	emailPassword := os.Getenv("EMAIL_PASSWORD")
 	subject := "Reset Your Password"
 	body := fmt.Sprintf("Click the following link to reset your password: http://localhost:8080/reset-password?resetToken=%s", resetToken)
 

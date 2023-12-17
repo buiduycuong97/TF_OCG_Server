@@ -61,3 +61,11 @@ func GetVariantIDsByProductID(productID int32) ([]int32, error) {
 
 	return variantIDs, nil
 }
+
+func GetImageByVariantID(variantID int32) (string, error) {
+	var variant models.Variant
+	if err := database.Db.Select("image").First(&variant, variantID).Error; err != nil {
+		return "", err
+	}
+	return variant.Image, nil
+}

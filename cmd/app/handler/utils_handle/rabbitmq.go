@@ -3,9 +3,11 @@ package utils_handle
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/streadway/amqp"
 	"gopkg.in/gomail.v2"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"tf_ocg/cmd/app/dbms"
@@ -13,7 +15,8 @@ import (
 )
 
 func SendDiscountMessagesToRabbitMQ(discounts []models.Discount) error {
-	conn, err := amqp.Dial("amqps://ithkfqls:w4d4HaTpn_cDiod1r9BOT-CSZON1gYVF@octopus.rmq3.cloudamqp.com/ithkfqls")
+	rabbitMQURL := os.Getenv("RABBITMQ_URL")
+	conn, err := amqp.Dial(rabbitMQURL)
 	//conn, err := amqp.Dial("amqp://localhost:5672") // Use plain AMQP
 	if err != nil {
 		return err
@@ -66,11 +69,13 @@ func SendDiscountMessagesToRabbitMQ(discounts []models.Discount) error {
 }
 
 func HandleRabbitMQMessages() {
+	rabbitMQURL := os.Getenv("RABBITMQ_URL")
+
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true,
 	}
 
-	conn, err := amqp.DialTLS("amqps://ithkfqls:w4d4HaTpn_cDiod1r9BOT-CSZON1gYVF@octopus.rmq3.cloudamqp.com/ithkfqls", tlsConfig) // Use plain AMQP with TLS configuration
+	conn, err := amqp.DialTLS(rabbitMQURL, tlsConfig) // Use plain AMQP with TLS configuration
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -133,8 +138,12 @@ func HandleRabbitMQMessages() {
 }
 
 func SendOrderStatusUpdateEmail(email, emailContent string) error {
-	emailAddress := "pau30012002@gmail.com"
-	emailPassword := "pljf fqgx yycq ynhq"
+	if err := godotenv.Load(); err != nil {
+		return err
+	}
+
+	emailAddress := os.Getenv("EMAIL_ADDRESS")
+	emailPassword := os.Getenv("EMAIL_PASSWORD")
 	subject := "Order Status Update"
 	body := fmt.Sprintf(emailContent)
 
