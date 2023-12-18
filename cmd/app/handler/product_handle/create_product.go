@@ -3,10 +3,13 @@ package product_handle
 import (
 	"cloud.google.com/go/storage"
 	"context"
+	"crypto/tls"
 	"fmt"
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gosimple/slug"
 	"google.golang.org/api/option"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
@@ -93,7 +96,26 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 	product.Handle = slug.Make(product.Title)
 
-	_, err = dbms.CreateProduct(&product)
+	// Cấu hình Elasticsearch
+	esCfg := elasticsearch.Config{
+		Addresses: []string{"https://localhost:9200"},
+		Username:  "elastic",
+		Password:  "Ksckb67MQwA-frPDAA7+",
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	// Tạo client Elasticsearch
+	esClient, err := elasticsearch.NewClient(esCfg)
+	if err != nil {
+		log.Printf("Lỗi khi tạo client Elasticsearch: %s", err)
+		return
+	}
+
+	_, err = dbms.CreateProduct(&product, esClient)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return

@@ -1,12 +1,12 @@
 package product_handle
 
 import (
+	"crypto/tls"
 	"encoding/json"
-	"github.com/gorilla/mux"
+	"github.com/elastic/go-elasticsearch/v8"
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/dto/product_dto/response"
 	res "tf_ocg/pkg/response_api"
@@ -15,15 +15,6 @@ import (
 )
 
 func UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	pid, err := strconv.ParseUint(vars["id"], 10, 32)
-	pid32 := int32(pid)
-
-	if err != nil {
-		res.ERROR(w, http.StatusBadRequest, err)
-		return
-	}
-
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		res.ERROR(w, http.StatusUnprocessableEntity, err)
@@ -37,7 +28,24 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = dbms.UpdateProduct(&product, pid32)
+	esCfg := elasticsearch.Config{
+		Addresses: []string{"https://localhost:9200"},
+		Username:  "elastic",
+		Password:  "Ksckb67MQwA-frPDAA7+",
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+
+	esClient, err := elasticsearch.NewClient(esCfg)
+	if err != nil {
+		log.Printf("Error creating Elasticsearch client: %s", err)
+		return
+	}
+
+	err = dbms.UpdateProduct(&product, esClient)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return

@@ -6,18 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
-	"gorm.io/gorm"
 	"io"
 	"log"
 	"strconv"
 	"strings"
 	database "tf_ocg/pkg/database_manager"
 	"tf_ocg/proto/models"
-	"tf_ocg/utils"
 	"time"
 )
 
-func CreateProduct(product *models.Product) (*models.Product, error) {
+func CreateProduct(product *models.Product, esClient *elasticsearch.Client) (*models.Product, error) {
 	existingProduct := &models.Product{}
 	database.Db.Raw("SELECT * FROM products WHERE title = ?", product.Title).Scan(existingProduct)
 	if existingProduct.Handle == product.Handle {
@@ -27,18 +25,28 @@ func CreateProduct(product *models.Product) (*models.Product, error) {
 	now := time.Now()
 	product.CreatedAt = now
 	product.UpdatedAt = now
+
+	// Thêm sản phẩm vào cơ sở dữ liệu
 	tx := database.Db.Begin()
 	if err := tx.Create(product).Error; err != nil {
 		tx.Rollback()
 		return nil, err
 	}
+	tx.Commit()
 
-	if err := IndexProductES(utils.EsClient, product); err != nil {
-		tx.Rollback()
+	// Kiểm tra và chỉ mục sản phẩm trong Elasticsearch
+	if err := IndexProductES(esClient, product); err != nil {
+		// Nếu có lỗi khi chỉ mục sản phẩm, rollback thêm sản phẩm trong cơ sở dữ liệu
+		tx := database.Db.Begin()
+		if err := tx.Where("product_id = ?", product.ProductID).Delete(&models.Product{}).Error; err != nil {
+			tx.Rollback()
+			return nil, err
+		}
+		tx.Commit()
+
 		return nil, err
 	}
 
-	tx.Commit()
 	return product, nil
 }
 
@@ -136,24 +144,47 @@ func GetProductByHandle(product *models.Product, handle string) (err error) {
 	return nil
 }
 
-func UpdateProduct(updatedProduct *models.Product, id int32) error {
+func UpdateProduct(product *models.Product, esClient *elasticsearch.Client) error {
+	existingProduct := &models.Product{}
+	err := database.Db.Where("product_id = ?", product.ProductID).Find(existingProduct).Error
+	if err != nil {
+		return err
+	}
+
+	if existingProduct.Handle != product.Handle {
+		return errors.New("Product does not exist")
+	}
+
+	// Bắt đầu một giao dịch trong cơ sở dữ liệu quan hệ
 	tx := database.Db.Begin()
-
-	if err := tx.Model(updatedProduct).Where("product_id = ?", id).Updates(updatedProduct).Error; err != nil {
+	if err := tx.Model(product).Where("product_id = ?", product.ProductID).Updates(product).Error; err != nil {
+		// Nếu có lỗi, rollback giao dịch và trả về lỗi
 		tx.Rollback()
 		return err
 	}
 
-	if err := UpdateProductES(utils.EsClient, updatedProduct); err != nil {
-		tx.Rollback()
-		return err
-	}
-
+	// Commit giao dịch trong cơ sở dữ liệu quan hệ
 	tx.Commit()
+
+	// Cập nhật sản phẩm trong Elasticsearch
+	if err := UpdateProductES(esClient, product); err != nil {
+		// Nếu có lỗi khi cập nhật Elasticsearch, rollback cập nhật trong cơ sở dữ liệu quan hệ
+		tx := database.Db.Begin()
+		if err := tx.Model(product).Where("product_id = ?", product.ProductID).Updates(existingProduct).Error; err != nil {
+			// Nếu rollback thất bại, ghi log và thông báo lỗi
+			log.Printf("Error rolling back database update: %s", err)
+		}
+		tx.Commit()
+
+		return err
+	}
+
 	return nil
 }
 
 func UpdateProductES(esClient *elasticsearch.Client, product *models.Product) error {
+	log.Printf("Updating product in Elasticsearch. Product ID: %d", product.ProductID)
+
 	updateData := map[string]interface{}{
 		"doc": map[string]interface{}{
 			"handle":      product.Handle,
@@ -172,6 +203,8 @@ func UpdateProductES(esClient *elasticsearch.Client, product *models.Product) er
 		log.Printf("Error marshalling update request to JSON: %s", err)
 		return err
 	}
+
+	log.Printf("Update JSON: %s", updateJSON)
 
 	resp, err := esClient.Update(
 		"products",
@@ -193,9 +226,11 @@ func UpdateProductES(esClient *elasticsearch.Client, product *models.Product) er
 		return err
 	}
 
+	log.Printf("Elasticsearch response status: %s", resp.Status())
+	log.Printf("Response body: %s", body)
+
 	if resp.IsError() {
 		log.Printf("Elasticsearch responded with error: %s", resp.Status())
-		log.Printf("Response body: %s", body)
 		return errors.New("Elasticsearch response error")
 	}
 
@@ -203,30 +238,48 @@ func UpdateProductES(esClient *elasticsearch.Client, product *models.Product) er
 	return nil
 }
 
-func DeleteProduct(product *models.Product, id int32) error {
+func DeleteProduct(esClient *elasticsearch.Client, id int32) error {
+	// Xóa khỏi Elasticsearch
+	err := DeleteProductES(esClient, id)
+	if err != nil {
+		return err
+	}
+
+	// Xóa khỏi cơ sở dữ liệu (hoặc bất kỳ lưu trữ nào khác)
+	err = DeleteProductFromDB(id)
+	if err != nil {
+		// Nếu việc xóa khỏi cơ sở dữ liệu thất bại, thực hiện bù đắp
+		ReAddProductToES(esClient, id)
+		return err
+	}
+
+	return nil
+}
+
+func ReAddProductToES(esClient *elasticsearch.Client, productID int32) error {
+	// Lấy thông tin sản phẩm từ cơ sở dữ liệu
+	product, err := GetProductByID(productID)
+	if err != nil {
+		log.Printf("Lỗi khi lấy thông tin sản phẩm từ cơ sở dữ liệu: %s", err)
+		return err
+	}
+
+	// Chỉ mục lại sản phẩm trong Elasticsearch
+	err = IndexProductES(esClient, &product)
+	if err != nil {
+		log.Printf("Lỗi khi chỉ mục lại sản phẩm trong Elasticsearch: %s", err)
+		// Xử lý lỗi một cách phù hợp, có thể quyết định rollback hoặc thực hiện thêm bước bù đắp khác
+		return err
+	}
+
+	log.Printf("Thêm lại sản phẩm có ID %d vào Elasticsearch thành công", productID)
+	return nil
+}
+
+func DeleteProductFromDB(id int32) error {
 	tx := database.Db.Begin()
 
-	if err := deleteReviewsByProductID(tx, id); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := deleteCartItemByProductID(tx, id); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := deleteOrderDetailByProductID(tx, id); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := DeleteProductES(utils.EsClient, id); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	if err := tx.Where("product_id = ?", id).Delete(product).Error; err != nil {
+	if err := tx.Where("product_id = ?", id).Delete(&models.Product{}).Error; err != nil {
 		tx.Rollback()
 		return err
 	}
@@ -263,18 +316,6 @@ func DeleteProductES(esClient *elasticsearch.Client, id int32) error {
 
 	log.Printf("Delete completed for product with ID %d in Elasticsearch", id)
 	return nil
-}
-
-func deleteCartItemByProductID(tx *gorm.DB, productID int32) error {
-	return tx.Where("product_id = ?", productID).Delete(&models.Cart{}).Error
-}
-
-func deleteReviewsByProductID(tx *gorm.DB, productID int32) error {
-	return tx.Where("product_id = ?", productID).Delete(&models.Review{}).Error
-}
-
-func deleteOrderDetailByProductID(tx *gorm.DB, productID int32) error {
-	return tx.Where("product_id = ?", productID).Delete(&models.OrderDetail{}).Error
 }
 
 func GetListProduct() ([]*models.Product, error) {

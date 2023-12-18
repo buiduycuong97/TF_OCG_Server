@@ -227,60 +227,50 @@ func updateUserStatsAndCheckDiscount(tx *gorm.DB, user *models.User, order *mode
 	user.OrderCount++
 	user.TotalSpent += int32(order.GrandTotal)
 
-	UpdateLevelAndCheckDiscount(tx, user)
+	err := UpdateLevelAndCheckDiscount(tx, user)
+	if err != nil {
+		return
+	}
 }
 
 func UpdateLevelAndCheckDiscount(tx *gorm.DB, user *models.User) error {
-	currentTime := time.Now()
-
-	if user.LastLevelUpdate.Before(time.Date(currentTime.Year(), 1, 1, 0, 0, 0, 0, time.UTC)) && currentTime.Before(time.Date(currentTime.Year(), 6, 30, 23, 59, 59, 999999999, time.UTC)) {
-		if user.OrderCount >= 3 && user.TotalSpent >= 1000000 && user.CurrentLevel == models.Bronze {
-			user.CurrentLevel = models.Silver
-			user.NextLevel = models.Gold
-			discount, err := discount_handle.CreateAutomaticDiscountForUpgrade(user)
-			if err != nil {
-				return err
-			}
-			err = SendOrderStatusUpdateEmail(user.Email, string(user.CurrentLevel), discount.DiscountCode)
-			if err != nil {
-				return err
-			}
+	if user.OrderCount >= 3 && user.TotalSpent >= 1000000 && user.CurrentLevel == models.Bronze {
+		user.CurrentLevel = models.Silver
+		user.NextLevel = models.Gold
+		discount, err := discount_handle.CreateAutomaticDiscountForUpgrade(user)
+		if err != nil {
+			return err
+		}
+		err = SendOrderStatusUpdateEmail(user.Email, string(user.CurrentLevel), discount.DiscountCode)
+		if err != nil {
+			return err
 		}
 	}
-
-	if user.LastLevelUpdate.Before(time.Date(currentTime.Year(), 7, 1, 0, 0, 0, 0, time.UTC)) && currentTime.Before(time.Date(currentTime.Year(), 12, 31, 23, 59, 59, 999999999, time.UTC)) {
-		if user.OrderCount >= 20 && user.TotalSpent >= 5000000 && user.CurrentLevel == models.Silver {
-			user.CurrentLevel = models.Gold
-			user.NextLevel = models.Diamond
-			discount, err := discount_handle.CreateAutomaticDiscountForUpgrade(user)
-			if err != nil {
-				return err
-			}
-			err = SendOrderStatusUpdateEmail(user.Email, string(user.CurrentLevel), discount.DiscountCode)
-			if err != nil {
-				return err
-			}
+	if user.OrderCount >= 20 && user.TotalSpent >= 5000000 && user.CurrentLevel == models.Silver {
+		user.CurrentLevel = models.Gold
+		user.NextLevel = models.Diamond
+		discount, err := discount_handle.CreateAutomaticDiscountForUpgrade(user)
+		if err != nil {
+			return err
 		}
-
-		if user.OrderCount >= 75 && user.TotalSpent >= 15000000 && user.CurrentLevel == models.Gold {
-			user.CurrentLevel = models.Diamond
-			user.NextLevel = ""
-			discount, err := discount_handle.CreateAutomaticDiscountForUpgrade(user)
-			if err != nil {
-				return err
-			}
-			err = SendOrderStatusUpdateEmail(user.Email, string(user.CurrentLevel), discount.DiscountCode)
-			if err != nil {
-				return err
-			}
-		}
-
-		if err := dbms.UpdateUserLevel(tx, user, user.UserID); err != nil {
+		err = SendOrderStatusUpdateEmail(user.Email, string(user.CurrentLevel), discount.DiscountCode)
+		if err != nil {
 			return err
 		}
 	}
 
-	user.LastLevelUpdate = currentTime
+	if user.OrderCount >= 75 && user.TotalSpent >= 15000000 && user.CurrentLevel == models.Gold {
+		user.CurrentLevel = models.Diamond
+		user.NextLevel = ""
+		discount, err := discount_handle.CreateAutomaticDiscountForUpgrade(user)
+		if err != nil {
+			return err
+		}
+		err = SendOrderStatusUpdateEmail(user.Email, string(user.CurrentLevel), discount.DiscountCode)
+		if err != nil {
+			return err
+		}
+	}
 
 	if err := dbms.UpdateUserLevel(tx, user, user.UserID); err != nil {
 		return err
