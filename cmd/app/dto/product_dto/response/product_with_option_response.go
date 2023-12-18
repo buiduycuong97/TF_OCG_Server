@@ -8,4 +8,5 @@ import (
 type ProductWithOptionResponse struct {
 	Product        models.Product                   `json:"product"`
 	OptionProducts []response.OptionProductResponse `json:"optionProducts"`
+	Variants       []models.Variant                 `json:"variants"`
 }

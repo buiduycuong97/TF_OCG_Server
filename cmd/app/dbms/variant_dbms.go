@@ -40,6 +40,14 @@ func GetVariantIdByOption(productID, optionValue1, optionValue2 int32) (int32, e
 func GetVariantById(variant *models.Variant, variantID int32) error {
 	return database.Db.Where("variant_id = ?", variantID).First(variant).Error
 }
+func GetVariantsByProductId(productId int32) ([]models.Variant, error) {
+	var variants []models.Variant
+	err := database.Db.Where("product_id = ?", productId).Find(&variants).Error
+	if err != nil {
+		return nil, err
+	}
+	return variants, nil
+}
 
 func GetVariantByIdInGetOrder(variantID int32) (models.Variant, error) {
 	var variant models.Variant
@@ -60,6 +68,26 @@ func GetVariantIDsByProductID(productID int32) ([]int32, error) {
 	}
 
 	return variantIDs, nil
+}
+
+func UpdateVariantByAdmin(variant *models.Variant, variantID int32) error {
+	err := database.Db.Model(&models.Variant{}).Where("variant_id = ?", variantID).Updates(variant).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func DeleteVariant(variantID int32) error {
+	err := GetVariantById(&models.Variant{}, variantID)
+	if err != nil {
+		return err
+	}
+	err = database.Db.Delete(&models.Variant{}, variantID).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func GetImageByVariantID(variantID int32) (string, error) {
