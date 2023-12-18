@@ -63,10 +63,17 @@ func GetProduct(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	variants, err := dbms.GetVariantsByProductId(product.ProductID)
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
 	// Create the final response structure
 	result := response.ProductWithOptionResponse{
 		Product:        product,
 		OptionProducts: optionProductsResponse,
+		Variants:       variants,
 	}
 
 	res.JSON(w, http.StatusOK, result)

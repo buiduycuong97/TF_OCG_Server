@@ -8,6 +8,7 @@ import (
 	"google.golang.org/api/option"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/dto/product_dto/response"
@@ -15,13 +16,27 @@ import (
 	"tf_ocg/proto/models"
 )
 
+func getFilePath() (string, error) {
+	absPath, err := filepath.Abs("cmd/app/handler/product_handle/double2c-firebase-adminsdk-64fpu-cb7acf1b93.json")
+	if err != nil {
+		return "Fail to get file path", err
+	} else {
+		return absPath, nil
+	}
+}
+
 const (
-	credentialsPath       = "D:\\DuyCuong\\TF_OCG_Server\\double2c-firebase-adminsdk-64fpu-cb7acf1b93.json"
+	credentialsPath       = "./double2c-firebase-adminsdk-64fpu-cb7acf1b93.json"
 	firebaseStorageBucket = "double2c.appspot.com"
 )
 
 func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
+	firebaseFilePath, error := getFilePath()
+	if error != nil {
+		res.ERROR(w, http.StatusUnprocessableEntity, error)
+		return
+	}
 
 	err := r.ParseMultipartForm(10 << 20) // Limit your maxMultipartMemory
 	if err != nil {
@@ -38,7 +53,7 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 
 	// Khởi tạo Storage client
 	ctx := context.Background()
-	client, err := storage.NewClient(ctx, option.WithCredentialsFile(credentialsPath))
+	client, err := storage.NewClient(ctx, option.WithCredentialsFile(firebaseFilePath))
 	if err != nil {
 		res.ERROR(w, http.StatusUnprocessableEntity, err)
 		return
