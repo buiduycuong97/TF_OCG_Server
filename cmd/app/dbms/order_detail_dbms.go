@@ -6,6 +6,24 @@ import (
 	"tf_ocg/proto/models"
 )
 
+type OrderResult struct {
+	OrderDetailID int32   `json:"orderDetailId"`
+	OrderID       int32   `json:"orderId"`
+	Quantity      int32   `json:"quantity"`
+	Price         float64 `json:"price"`
+	IsReview      bool    `json:"isReview"`
+
+	VariantID    int32  `gorm:"primaryKey;autoIncrement" json:"variantId"`
+	ProductID    int32  `json:"productId"`
+	Title        string `json:"title"`
+	VariantPrice int32  `json:"variantDetail.price"`
+	ComparePrice int32  `json:"comparePrice"`
+	CountInStock int32  `json:"countInStock"`
+	Image        string `json:"image"`
+	OptionValue1 int32  `json:"optionValue1"`
+	OptionValue2 int32  `json:"optionValue2"`
+}
+
 func CreateOrderDetail(tx *gorm.DB, orderDetail *models.OrderDetail) error {
 	orderDetail.IsReview = false
 
