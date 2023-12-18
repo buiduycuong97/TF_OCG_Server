@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gosimple/slug"
+	"github.com/joho/godotenv"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/cmd/app/dto/product_dto/response"
 	res "tf_ocg/pkg/response_api"
@@ -34,12 +36,20 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Title is required"))
 		return
 	}
-	product.Handle = slug.Make(product.Title)
 
+	product.Handle = slug.Make(product.Title)
+	if err := godotenv.Load(); err != nil {
+		return
+	}
+
+	Addresses := os.Getenv("ES_ADDRESS")
+	Username := os.Getenv("ES_USERNAME")
+	Password := os.Getenv("ES_PASSWORD")
+	// Cấu hình Elasticsearch
 	esCfg := elasticsearch.Config{
-		Addresses: []string{"https://localhost:9200"},
-		Username:  "elastic",
-		Password:  "Ksckb67MQwA-frPDAA7+",
+		Addresses: []string{Addresses},
+		Username:  Username,
+		Password:  Password,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,

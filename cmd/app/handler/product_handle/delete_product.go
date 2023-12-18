@@ -4,8 +4,10 @@ import (
 	"crypto/tls"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
 	res "tf_ocg/pkg/response_api"
@@ -23,11 +25,18 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := godotenv.Load(); err != nil {
+		return
+	}
+
+	Addresses := os.Getenv("ES_ADDRESS")
+	Username := os.Getenv("ES_USERNAME")
+	Password := os.Getenv("ES_PASSWORD")
 	// Cấu hình Elasticsearch
 	esCfg := elasticsearch.Config{
-		Addresses: []string{"https://localhost:9200"},
-		Username:  "elastic",
-		Password:  "Ksckb67MQwA-frPDAA7+",
+		Addresses: []string{Addresses},
+		Username:  Username,
+		Password:  Password,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,

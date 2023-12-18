@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gosimple/slug"
+	"github.com/joho/godotenv"
 	"google.golang.org/api/option"
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
@@ -111,11 +113,18 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 	product.Handle = slug.Make(product.Title)
 
+	if err := godotenv.Load(); err != nil {
+		return
+	}
+
+	Addresses := os.Getenv("ES_ADDRESS")
+	Username := os.Getenv("ES_USERNAME")
+	Password := os.Getenv("ES_PASSWORD")
 	// Cấu hình Elasticsearch
 	esCfg := elasticsearch.Config{
-		Addresses: []string{"https://localhost:9200"},
-		Username:  "elastic",
-		Password:  "Ksckb67MQwA-frPDAA7+",
+		Addresses: []string{Addresses},
+		Username:  Username,
+		Password:  Password,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,

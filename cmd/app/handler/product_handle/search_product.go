@@ -2,7 +2,9 @@ package product_handle
 
 import (
 	"crypto/tls"
+	"github.com/joho/godotenv"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"tf_ocg/cmd/app/dbms"
@@ -60,10 +62,18 @@ func SearchProducts(w http.ResponseWriter, r *http.Request) {
 		pageSize = 10
 	}
 
+	if err := godotenv.Load(); err != nil {
+		return
+	}
+
+	Addresses := os.Getenv("ES_ADDRESS")
+	Username := os.Getenv("ES_USERNAME")
+	Password := os.Getenv("ES_PASSWORD")
+	// Cấu hình Elasticsearch
 	esCfg := elasticsearch.Config{
-		Addresses: []string{"https://localhost:9200"},
-		Username:  "elastic",
-		Password:  "Ksckb67MQwA-frPDAA7+",
+		Addresses: []string{Addresses},
+		Username:  Username,
+		Password:  Password,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
