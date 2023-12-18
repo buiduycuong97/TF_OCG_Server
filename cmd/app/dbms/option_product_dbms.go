@@ -2,6 +2,7 @@ package dbms
 
 import (
 	"errors"
+	"gorm.io/gorm"
 	database "tf_ocg/pkg/database_manager"
 	"tf_ocg/proto/models"
 )
@@ -58,4 +59,43 @@ func GetListOptionProductByProductID(productID int32) ([]models.OptionProduct, e
 		return nil, err
 	}
 	return optionProducts, nil
+}
+func DeleteOptionProductByProductID(tx *gorm.DB, productID int32) error {
+	optionProductIDs, err := getOptionProductIDsByProductID(tx, productID)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	for _, optionProductID := range optionProductIDs {
+		if err := DeleteOptionValuesByOptionProductID(tx, optionProductID); err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+
+	if err := tx.Where("product_id = ?", productID).Delete(&models.OptionProduct{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	return nil
+}
+
+func getOptionProductIDsByProductID(tx *gorm.DB, productID int32) ([]int32, error) {
+	var optionProductIDs []int32
+	if err := tx.Model(&models.OptionProduct{}).Where("product_id = ?", productID).
+		Pluck("option_product_id", &optionProductIDs).Error; err != nil {
+		return nil, err
+	}
+	return optionProductIDs, nil
+}
+
+func GetOptionProductByOptionProductId(optionProductID int32) (*models.OptionProduct, error) {
+	var optionProduct models.OptionProduct
+	err := database.Db.Where("option_product_id = ?", optionProductID).First(&optionProduct).Error
+	if err != nil {
+		return nil, err
+	}
+	return &optionProduct, nil
 }

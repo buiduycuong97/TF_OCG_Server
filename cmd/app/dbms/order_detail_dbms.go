@@ -49,3 +49,19 @@ func UpdateOrderDetailIsReview(orderDetailID int32, isReview bool) error {
 
 	return nil
 }
+
+func DeleteOrderDetailByVariantID(tx *gorm.DB, variantID int32) error {
+	if err := tx.Where("variant_id = ?", variantID).Delete(&models.OrderDetail{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func DeleteOrderDetailByOrderId(tx *gorm.DB, orderID int32) error {
+	if err := tx.Where("order_id = ?", orderID).Delete(&models.OrderDetail{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}

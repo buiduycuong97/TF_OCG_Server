@@ -3,10 +3,13 @@ package option_value_handle
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"tf_ocg/cmd/app/dbms"
+	"tf_ocg/cmd/app/handler/product_handle"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
+	"tf_ocg/utils"
 )
 
 func CreateOptionValue(w http.ResponseWriter, r *http.Request) {
@@ -28,6 +31,17 @@ func CreateOptionValue(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
+	}
+
+	var optionProdcut *models.OptionProduct
+	optionProdcut, err = dbms.GetOptionProductByOptionProductId(optionValue.OptionProductID)
+
+	var product models.Product
+	product, err = dbms.GetProductByID(optionProdcut.ProductID)
+
+	err = utils.DeleteProductFromCache(product_handle.RedisClient, product.Handle)
+	if err != nil {
+		log.Println("Xóa sản phẩm trong cache thất bại: ", err)
 	}
 
 	res.JSON(w, http.StatusCreated, result)

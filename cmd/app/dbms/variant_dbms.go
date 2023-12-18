@@ -2,6 +2,7 @@ package dbms
 
 import (
 	"errors"
+	"gorm.io/gorm"
 	database "tf_ocg/pkg/database_manager"
 	"tf_ocg/proto/models"
 )
@@ -38,8 +39,20 @@ func GetVariantIdByOption(productID, optionValue1, optionValue2 int32) (int32, e
 }
 
 func GetVariantById(variant *models.Variant, variantID int32) error {
-	return database.Db.Where("variant_id = ?", variantID).First(variant).Error
+	err := database.Db.Where("variant_id = ?", variantID).First(variant).Error
+	if err != nil {
+		return err
+	}
+	return nil
 }
+
+func GetVariantByIdForDelete(tx *gorm.DB, variant *models.Variant, variantID int32) error {
+	if err := tx.Where("variant_id = ?", variantID).First(variant).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 func GetVariantsByProductId(productId int32) ([]models.Variant, error) {
 	var variants []models.Variant
 	err := database.Db.Where("product_id = ?", productId).Find(&variants).Error
@@ -79,21 +92,64 @@ func UpdateVariantByAdmin(variant *models.Variant, variantID int32) error {
 }
 
 func DeleteVariant(variantID int32) error {
-	err := GetVariantById(&models.Variant{}, variantID)
+	tx := database.Db.Begin()
+
+	// Xóa variant và các liên kết
+	err := GetVariantByIdForDelete(tx, &models.Variant{}, variantID)
 	if err != nil {
+		tx.Rollback()
 		return err
 	}
-	err = database.Db.Delete(&models.Variant{}, variantID).Error
-	if err != nil {
+	if err := DeleteReviewByVariantID(tx, variantID); err != nil {
+		tx.Rollback()
 		return err
 	}
+	if err := DeleteCartByVariantID(tx, variantID); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := DeleteOrderDetailByVariantID(tx, variantID); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := tx.Where("variant_id = ?", variantID).Delete(&models.Variant{}).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// Commit transaction
+	tx.Commit()
 	return nil
 }
-
 func GetImageByVariantID(variantID int32) (string, error) {
 	var variant models.Variant
 	if err := database.Db.Select("image").First(&variant, variantID).Error; err != nil {
 		return "", err
 	}
 	return variant.Image, nil
+}
+
+func DeleteVariantByProductID(tx *gorm.DB, productID int32) error {
+	var variants []models.Variant
+	if err := tx.Where("product_id = ?", productID).Find(&variants).Error; err != nil {
+		return err
+	}
+
+	for _, variant := range variants {
+		if err := DeleteReviewByVariantID(tx, variant.VariantID); err != nil {
+			return err
+		}
+		if err := DeleteCartByVariantID(tx, variant.VariantID); err != nil {
+			return err
+		}
+		if err := DeleteOrderDetailByVariantID(tx, variant.VariantID); err != nil {
+			return err
+		}
+	}
+	if err := tx.Where("product_id = ?", productID).Delete(&models.Variant{}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

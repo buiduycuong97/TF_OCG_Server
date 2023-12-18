@@ -174,3 +174,19 @@ func GetAllOrder() ([]models.Order, error) {
 	}
 	return orders, nil
 }
+
+func DeleteOrderTransaction(tx *gorm.DB, orderID int32) error {
+	if err := DeleteOrderDetailByOrderId(tx, orderID); err != nil {
+		return err
+	}
+
+	if err := DeleteTransactionByOrderId(tx, orderID); err != nil {
+		return err
+	}
+
+	if err := tx.Where("order_id = ?", orderID).Delete(&models.Order{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}

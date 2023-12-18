@@ -8,12 +8,15 @@ import (
 	"github.com/gorilla/mux"
 	"google.golang.org/api/option"
 	"io"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
+	"tf_ocg/cmd/app/handler/product_handle"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
+	"tf_ocg/utils"
 )
 
 const (
@@ -235,6 +238,15 @@ func UpdateVariantByAdmin(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		res.JSON(w, http.StatusOK, variant)
+
+		var product models.Product
+		product, err = dbms.GetProductByID(variant.ProductID)
+
+		err = utils.DeleteProductFromCache(product_handle.RedisClient, product.Handle)
+		if err != nil {
+			log.Println("Xóa sản phẩm trong cache thất bại: ", err)
+		}
+
 	}
 
 }

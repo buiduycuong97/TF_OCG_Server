@@ -18,10 +18,10 @@ import (
 	"tf_ocg/utils"
 )
 
-var redisClient *redis.Client // Declare the Redis client
+var RedisClient *redis.Client // Declare the Redis client
 
 func SetRedisClient(client *redis.Client) {
-	redisClient = client
+	RedisClient = client
 }
 
 func convertProductToString(product models.Product) (string, error) {
@@ -49,58 +49,21 @@ func convertProductHandleToString(product response.ProductWithOptionResponse) (s
 func GetProduct(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	productID := vars["id"]
-
-	cachedData, err := utils.GetProductFromCache(redisClient, productID)
-	if err == nil {
-		res.JSON(w, http.StatusOK, cachedData)
-		return
-	}
-
-	var product models.Product
-
 	parsedProductID, err := strconv.ParseInt(productID, 10, 32)
 	if err != nil {
 		res.ERROR(w, http.StatusBadRequest, err)
 		return
 	}
+	var product models.Product
+	product, err = dbms.GetProductByID(int32(parsedProductID))
 
-	err = dbms.GetProductById(&product, int32(parsedProductID))
-	if err != nil {
-		res.ERROR(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	productData, err := convertProductToString(product)
-	if err != nil {
-		log.Println("Lỗi chuyển đổi dữ liệu sản phẩm thành JSON: ", err)
-		res.ERROR(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	err = utils.SetProductToCache(redisClient, productID, productData)
-	if err != nil {
-		log.Println("Lưu sản phẩm vào cache thất bại: ", err)
-	}
-
-	res.JSON(w, http.StatusOK, product)
-}
-
-func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
-	handle := r.URL.Query().Get("handle")
-
-	cachedData, err := utils.GetProductHandleFromCache(redisClient, handle)
+	cachedData, err := utils.GetProductHandleFromCache(RedisClient, product.Handle)
 	if err == nil {
 		res.JSON(w, http.StatusOK, cachedData)
 		return
 	}
 
-	var product models.Product
-	err = dbms.GetProductByHandle(&product, handle)
-	if err != nil {
-		res.ERROR(w, http.StatusInternalServerError, err)
-		return
-	}
-
+	// Fetch option products related to the product
 	optionProducts, err := dbms.GetListOptionProductByProductID(product.ProductID)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
@@ -132,9 +95,17 @@ func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	variants, err := dbms.GetVariantsByProductId(product.ProductID)
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Create the final response structure
 	result := response.ProductWithOptionResponse{
 		Product:        product,
 		OptionProducts: optionProductsResponse,
+		Variants:       variants,
 	}
 
 	productData, err := convertProductHandleToString(result)
@@ -144,7 +115,84 @@ func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = utils.SetProductToCache(redisClient, handle, productData)
+	err = utils.SetProductToCache(RedisClient, product.Handle, productData)
+	if err != nil {
+		log.Println("Lưu sản phẩm vào cache thất bại: ", err)
+	}
+
+	res.JSON(w, http.StatusOK, result)
+
+}
+
+func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
+	handle := r.URL.Query().Get("handle")
+
+	cachedData, err := utils.GetProductHandleFromCache(RedisClient, handle)
+	if err == nil {
+		res.JSON(w, http.StatusOK, cachedData)
+		return
+	}
+
+	var product models.Product
+	err = dbms.GetProductByHandle(&product, handle)
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Fetch option products related to the product
+	optionProducts, err := dbms.GetListOptionProductByProductID(product.ProductID)
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	var optionProductsResponse []option_product_response.OptionProductResponse
+	for _, optionSet := range optionProducts {
+		var optionValuesResponse []option_value_response.OptionValueResponse
+		optionValues, err := dbms.GetOptionValueByOptionProductId(optionSet.OptionProductID)
+		if err != nil {
+			res.ERROR(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		for _, optionValue := range optionValues {
+			optionValuesResponse = append(optionValuesResponse, option_value_response.OptionValueResponse{
+				OptionValueID:   optionValue.OptionValueID,
+				OptionProductID: optionValue.OptionProductID,
+				Value:           optionValue.Value,
+			})
+		}
+
+		optionProductsResponse = append(optionProductsResponse, option_product_response.OptionProductResponse{
+			OptionProductID: optionSet.OptionProductID,
+			ProductID:       optionSet.ProductID,
+			OptionType:      optionSet.OptionType,
+			OptionValues:    optionValuesResponse,
+		})
+	}
+
+	variants, err := dbms.GetVariantsByProductId(product.ProductID)
+	if err != nil {
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Create the final response structure
+	result := response.ProductWithOptionResponse{
+		Product:        product,
+		OptionProducts: optionProductsResponse,
+		Variants:       variants,
+	}
+
+	productData, err := convertProductHandleToString(result)
+	if err != nil {
+		log.Println("Lỗi chuyển đổi dữ liệu sản phẩm thành JSON: ", err)
+		res.ERROR(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = utils.SetProductToCache(RedisClient, handle, productData)
 	if err != nil {
 		log.Println("Lưu sản phẩm vào cache thất bại: ", err)
 	}
@@ -154,7 +202,7 @@ func GetProductByHandle(w http.ResponseWriter, r *http.Request) {
 
 func GetListProducts(w http.ResponseWriter, r *http.Request) {
 	cacheKey := "list_products"
-	cachedData, err := utils.GetListProductsFromCache(redisClient, cacheKey)
+	cachedData, err := utils.GetListProductsFromCache(RedisClient, cacheKey)
 	if err == nil {
 		res.JSON(w, http.StatusOK, cachedData)
 		return
@@ -166,7 +214,7 @@ func GetListProducts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = utils.SetListProductsToCache(redisClient, cacheKey, products)
+	err = utils.SetListProductsToCache(RedisClient, cacheKey, products)
 	if err != nil {
 		log.Println("Lưu danh sách sản phẩm vào cache thất bại: ", err)
 	}

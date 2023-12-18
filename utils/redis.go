@@ -50,49 +50,34 @@ func NewRedisClient(config Config) *redis.Client {
 	return client
 }
 
-func GetProductFromCache(client *redis.Client, productID string) (*models.Product, error) {
+func GetProductHandleFromCache(client *redis.Client, handle string) (*response.ProductWithOptionResponse, error) {
 	ctx := context.Background()
-	cacheKey := fmt.Sprintf("product:%s", productID)
+	cacheKey := fmt.Sprintf("product:%s", handle)
 
 	cachedData, err := client.Get(ctx, cacheKey).Result()
 	if err == redis.Nil {
+		fmt.Println("Cache miss for key:", cacheKey)
 		return nil, err
 	} else if err != nil {
+		fmt.Println("Error retrieving data from cache:", err)
 		return nil, err
 	}
 
-	var product models.Product
-	err = json.Unmarshal([]byte(cachedData), &product)
+	var productWithOption response.ProductWithOptionResponse
+	err = json.Unmarshal([]byte(cachedData), &productWithOption)
 	if err != nil {
+		fmt.Println("Error during JSON unmarshaling:", err)
+		fmt.Println("Cached Data:", cachedData)
 		return nil, err
 	}
 
-	return &product, nil
+	fmt.Println("Successfully unmarshaled data from cache")
+	return &productWithOption, nil
 }
 
-func GetProductHandleFromCache(client *redis.Client, productID string) (*response.ProductWithOptionResponse, error) {
+func SetProductToCache(client *redis.Client, handle string, productData string) error {
 	ctx := context.Background()
-	cacheKey := fmt.Sprintf("product:%s", productID)
-
-	cachedData, err := client.Get(ctx, cacheKey).Result()
-	if err == redis.Nil {
-		return nil, err
-	} else if err != nil {
-		return nil, err
-	}
-
-	var product response.ProductWithOptionResponse
-	err = json.Unmarshal([]byte(cachedData), &product)
-	if err != nil {
-		return nil, err
-	}
-
-	return &product, nil
-}
-
-func SetProductToCache(client *redis.Client, productID string, productData string) error {
-	ctx := context.Background()
-	cacheKey := fmt.Sprintf("product:%s", productID)
+	cacheKey := fmt.Sprintf("product:%s", handle)
 
 	err := client.Set(ctx, cacheKey, productData, 0).Err()
 	if err != nil {
@@ -102,9 +87,9 @@ func SetProductToCache(client *redis.Client, productID string, productData strin
 	return nil
 }
 
-func DeleteProductFromCache(client *redis.Client, productID string) error {
+func DeleteProductFromCache(client *redis.Client, handle string) error {
 	ctx := context.Background()
-	cacheKey := fmt.Sprintf("product:%s", productID)
+	cacheKey := fmt.Sprintf("product:%s", handle)
 
 	err := client.Del(ctx, cacheKey).Err()
 	if err != nil {

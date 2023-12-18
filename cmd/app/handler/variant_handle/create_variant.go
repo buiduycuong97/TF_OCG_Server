@@ -6,46 +6,17 @@ import (
 	"fmt"
 	"google.golang.org/api/option"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
+	"tf_ocg/cmd/app/handler/product_handle"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
+	"tf_ocg/utils"
 )
 
 func CreateVariantHandler(w http.ResponseWriter, r *http.Request) {
-	//var variant models.Variant
-	//body, err := io.ReadAll(r.Body)
-	//if err != nil {
-	//	res.ERROR(w, http.StatusUnprocessableEntity, err)
-	//	return
-	//}
-	//err = json.Unmarshal(body, &variant)
-	//if err != nil {
-	//	res.ERROR(w, http.StatusUnprocessableEntity, err)
-	//	return
-	//}
-	//if variant.ProductID <= 0 {
-	//	w.WriteHeader(http.StatusBadRequest)
-	//	w.Write([]byte("ProductID is required"))
-	//	return
-	//}
-	//createdVariant, err := dbms.CreateVariant(&variant)
-	//if err != nil {
-	//	res.ERROR(w, http.StatusInternalServerError, err)
-	//	return
-	//}
-	//createVariantRes := response.VariantResponse{
-	//	VariantID:    createdVariant.VariantID,
-	//	ProductID:    createdVariant.ProductID,
-	//	Title:        createdVariant.Title,
-	//	Price:        createdVariant.Price,
-	//	ComparePrice: createdVariant.ComparePrice,
-	//	CountInStock: createdVariant.CountInStock,
-	//	OptionValue1: createdVariant.OptionValue1,
-	//	OptionValue2: createdVariant.OptionValue2,
-	//}
-
 	var variant models.Variant
 
 	firebaseFilePath, error := GetFilePath()
@@ -144,6 +115,14 @@ func CreateVariantHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		res.ERROR(w, http.StatusBadRequest, err)
 		return
+	}
+
+	var product models.Product
+	product, err = dbms.GetProductByID(variant.ProductID)
+
+	err = utils.DeleteProductFromCache(product_handle.RedisClient, product.Handle)
+	if err != nil {
+		log.Println("Xóa sản phẩm trong cache thất bại: ", err)
 	}
 
 	res.JSON(w, http.StatusCreated, variantRes)

@@ -2,6 +2,7 @@ package dbms
 
 import (
 	"errors"
+	"gorm.io/gorm"
 	database "tf_ocg/pkg/database_manager"
 	"tf_ocg/proto/models"
 )
@@ -42,6 +43,14 @@ func GetOptionValueById(optionValue *models.OptionValue, optionValueID int32) er
 
 	if result.Error != nil {
 		return result.Error
+	}
+
+	return nil
+}
+
+func DeleteOptionValuesByOptionProductID(tx *gorm.DB, optionProductID int32) error {
+	if err := tx.Where("option_product_id = ?", optionProductID).Delete(&models.OptionValue{}).Error; err != nil {
+		return err
 	}
 
 	return nil

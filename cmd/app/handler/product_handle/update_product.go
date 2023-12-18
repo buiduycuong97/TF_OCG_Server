@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/gosimple/slug"
 	"io"
 	"log"
 	"net/http"
@@ -27,6 +28,13 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		res.ERROR(w, http.StatusUnprocessableEntity, err)
 		return
 	}
+
+	if product.Title == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Title is required"))
+		return
+	}
+	product.Handle = slug.Make(product.Title)
 
 	esCfg := elasticsearch.Config{
 		Addresses: []string{"https://localhost:9200"},
@@ -58,21 +66,21 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = utils.SetProductToCache(redisClient, product.Handle, productData)
+	err = utils.SetProductToCache(RedisClient, product.Handle, productData)
 	if err != nil {
 		log.Println("Lưu sản phẩm vào cache thất bại: ", err)
 	}
 
-	products, err := dbms.GetListProduct()
-	if err != nil {
-		res.ERROR(w, http.StatusInternalServerError, err)
-		return
-	}
-	cacheKey := "list_products"
-	err = utils.SetListProductsToCache(redisClient, cacheKey, products)
-	if err != nil {
-		log.Println("Lưu danh sách sản phẩm vào cache thất bại: ", err)
-	}
+	//products, err := dbms.GetListProduct()
+	//if err != nil {
+	//	res.ERROR(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//cacheKey := "list_products"
+	//err = utils.SetListProductsToCache(RedisClient, cacheKey, products)
+	//if err != nil {
+	//	log.Println("Lưu danh sách sản phẩm vào cache thất bại: ", err)
+	//}
 
 	productResponse := response.ProductResponseUpdate{
 		ProductID:   product.ProductID,
@@ -82,6 +90,11 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		Price:       product.Price,
 		CategoryID:  product.CategoryID,
 		UpdatedAt:   product.UpdatedAt,
+	}
+
+	err = utils.DeleteListProductsFromCache(RedisClient, "list_products")
+	if err != nil {
+		log.Println("Xóa sản phẩm trong cache thất bại: ", err)
 	}
 
 	res.JSON(w, http.StatusOK, productResponse)

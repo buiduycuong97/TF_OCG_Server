@@ -239,16 +239,13 @@ func UpdateProductES(esClient *elasticsearch.Client, product *models.Product) er
 }
 
 func DeleteProduct(esClient *elasticsearch.Client, id int32) error {
-	// Xóa khỏi Elasticsearch
 	err := DeleteProductES(esClient, id)
 	if err != nil {
 		return err
 	}
 
-	// Xóa khỏi cơ sở dữ liệu (hoặc bất kỳ lưu trữ nào khác)
 	err = DeleteProductFromDB(id)
 	if err != nil {
-		// Nếu việc xóa khỏi cơ sở dữ liệu thất bại, thực hiện bù đắp
 		ReAddProductToES(esClient, id)
 		return err
 	}
@@ -257,18 +254,15 @@ func DeleteProduct(esClient *elasticsearch.Client, id int32) error {
 }
 
 func ReAddProductToES(esClient *elasticsearch.Client, productID int32) error {
-	// Lấy thông tin sản phẩm từ cơ sở dữ liệu
 	product, err := GetProductByID(productID)
 	if err != nil {
 		log.Printf("Lỗi khi lấy thông tin sản phẩm từ cơ sở dữ liệu: %s", err)
 		return err
 	}
 
-	// Chỉ mục lại sản phẩm trong Elasticsearch
 	err = IndexProductES(esClient, &product)
 	if err != nil {
 		log.Printf("Lỗi khi chỉ mục lại sản phẩm trong Elasticsearch: %s", err)
-		// Xử lý lỗi một cách phù hợp, có thể quyết định rollback hoặc thực hiện thêm bước bù đắp khác
 		return err
 	}
 
@@ -278,6 +272,16 @@ func ReAddProductToES(esClient *elasticsearch.Client, productID int32) error {
 
 func DeleteProductFromDB(id int32) error {
 	tx := database.Db.Begin()
+
+	if err := DeleteOptionProductByProductID(tx, id); err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	if err := DeleteVariantByProductID(tx, id); err != nil {
+		tx.Rollback()
+		return err
+	}
 
 	if err := tx.Where("product_id = ?", id).Delete(&models.Product{}).Error; err != nil {
 		tx.Rollback()

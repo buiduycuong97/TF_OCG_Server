@@ -145,3 +145,11 @@ func DeleteCart(cart *models.Cart, cartID int32) error {
 	}
 	return nil
 }
+
+func DeleteCartByVariantID(tx *gorm.DB, variantID int32) error {
+	if err := tx.Where("variant_id = ?", variantID).Delete(&models.Cart{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
