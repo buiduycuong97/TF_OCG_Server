@@ -156,11 +156,20 @@ func GetOrderByID(orderID int32) (*models.Order, error) {
 	return &order, nil
 }
 
-func GetAllOrder() ([]models.Order, error) {
-	var orders []models.Order
-	result := database.Db.Find(&orders)
-	if result.Error != nil {
-		return nil, result.Error
+func GetAllOrder(page int32, pageSize int32, status string) ([]*models.Order, error) {
+	var orders []*models.Order
+	offset := (page - 1) * pageSize
+	query := database.Db
+
+	query = query.Offset(int(offset)).Limit(int(pageSize))
+	if status != "" {
+		query = query.Where("status = ?", status)
 	}
+
+	err := query.Find(&orders).Error
+	if err != nil {
+		return nil, err
+	}
+
 	return orders, nil
 }

@@ -46,3 +46,10 @@ func GetOptionValueById(optionValue *models.OptionValue, optionValueID int32) er
 
 	return nil
 }
+
+func DeleteOptionValuesByOptionProduct(optionProductId int32, optionValue string) error {
+	if err := database.Db.Where("option_product_id = ? AND value = ?", optionProductId, optionValue).Delete(&models.OptionValue{}).Error; err != nil {
+		return err
+	}
+	return nil
+}

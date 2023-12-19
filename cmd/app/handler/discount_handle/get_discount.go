@@ -91,7 +91,19 @@ func GetDiscountByDiscountCode(w http.ResponseWriter, r *http.Request) {
 	res.JSON(w, http.StatusOK, discount)
 }
 func GetAllDiscounts(w http.ResponseWriter, r *http.Request) {
-	discounts, err := dbms.GetAllDiscounts()
+	searchText := r.URL.Query().Get("searchText")
+	pageStr := r.URL.Query().Get("page")
+	pageSizeStr := r.URL.Query().Get("pageSize")
+	page, err := strconv.ParseInt(pageStr, 10, 32)
+	if err != nil || page <= 0 {
+		page = 1
+	}
+	pageSize, err := strconv.ParseInt(pageSizeStr, 10, 32)
+	if err != nil || pageSize <= 0 {
+		pageSize = 10
+	}
+
+	discounts, err := dbms.GetAllDiscounts(int32(page), int32(pageSize), searchText)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return

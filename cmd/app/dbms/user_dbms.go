@@ -195,7 +195,7 @@ func SearchUser(searchText string, page, pageSize int32) ([]*models.User, error)
 	query := database.Db
 
 	if searchText != "" {
-		query = query.Where("user_name LIKE ?", "%"+searchText+"%")
+		query = query.Where("email LIKE ?", "%"+searchText+"%")
 	}
 
 	query = query.Offset(int(offset)).Limit(int(pageSize))
