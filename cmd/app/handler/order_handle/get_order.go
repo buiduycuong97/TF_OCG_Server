@@ -105,13 +105,37 @@ func calculateTotalPrice(orderDetails []models.OrderDetail) float64 {
 }
 
 func GetAllOrder(w http.ResponseWriter, r *http.Request) {
-	orders, err := dbms.GetAllOrder()
+	status := r.URL.Query().Get("status")
+	pageStr := r.URL.Query().Get("page")
+	pageSizeStr := r.URL.Query().Get("pageSize")
+	page, err := strconv.ParseInt(pageStr, 10, 32)
+	if err != nil || page <= 0 {
+		page = 1
+	}
+
+	pageSize, err := strconv.ParseInt(pageSizeStr, 10, 32)
+	if err != nil || pageSize <= 0 {
+		pageSize = 10
+	}
+	if status == "pending" {
+		status = "pending"
+	} else if status == "onBeingDelivered" {
+		status = "order being delivered"
+	} else if status == "completeTheOrder" {
+		status = "complete the order"
+	} else if status == "cancelled" {
+		status = "cancelled"
+	} else {
+		status = ""
+	}
+	orders, err := dbms.GetAllOrder(int32(page), int32(pageSize), status)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	res.JSON(w, http.StatusOK, orders)
+
 }
 
 func getImageByVariantID(variantID int32) string {

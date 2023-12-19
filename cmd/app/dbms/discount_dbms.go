@@ -40,9 +40,17 @@ func GetDiscountByDiscountCode(discount *models.Discount, code string) (err erro
 	return nil
 }
 
-func GetAllDiscounts() ([]*models.Discount, error) {
+func GetAllDiscounts(page int32, pageSize int32, searchText string) ([]*models.Discount, error) {
 	discounts := []*models.Discount{}
-	err := database.Db.Find(&discounts).Error
+	offset := (page - 1) * pageSize
+	query := database.Db
+	query = query.Order("start_date desc")
+	query = query.Offset(int(offset)).Limit(int(pageSize))
+	if searchText != "" {
+		query = query.Where("discount_code LIKE ?", "%"+searchText+"%")
+	}
+
+	err := query.Find(&discounts).Error
 	if err != nil {
 		return nil, err
 	}
