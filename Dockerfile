@@ -1,12 +1,13 @@
-# syntax=docker/dockerfile:1
+FROM --platform=linux/amd64 golang:1.20-alpine3.19 AS builder
 
-FROM golang:1.21.3
+WORKDIR /go/src/tf_ocg
 
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
 COPY . .
 
-RUN go build -o /tf_ocg cmd/main.go
+RUN GOOS=linux GOARCH=amd64 go build -mod vendor -v -o /go/bin/app ./cmd/main.go
 
-CMD ["/tf_ocg"]
+FROM --platform=linux/amd64 alpine:3.19.0
+
+COPY --from=builder /go/bin/app /app
+
+ENTRYPOINT ["./app"]

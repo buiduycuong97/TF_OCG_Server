@@ -1,8 +1,6 @@
 package main
 
 import (
-	// ... (import statements)
-
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gorilla/mux"
