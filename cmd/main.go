@@ -3,7 +3,6 @@ package main
 import (
 	// ... (import statements)
 
-	"context"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -78,7 +77,7 @@ func Init() {
 	product_handle.SetElasticsearchClient(esClient)
 	server.ElasticsearchClient = esClient
 
-	createIndexMapping(Addresses, Username, Password)
+	//createIndexMapping(Addresses, Username, Password)
 
 	var products []models.Product
 	server.Db.Find(&products)
@@ -182,57 +181,57 @@ func cleanDescription(description string) string {
 	return cleaned
 }
 
-func createIndexMapping(address, username, password string) {
-	// Cấu hình kết nối Elasticsearch
-	cfg := elasticsearch.Config{
-		Addresses: []string{address},
-		Username:  username,
-		Password:  password,
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-		},
-	}
-
-	// Khởi tạo client Elasticsearch
-	esClient, err := elasticsearch.NewClient(cfg)
-	if err != nil {
-		log.Fatalf("Error creating Elasticsearch client: %s", err)
-	}
-
-	// Khởi tạo request PUT mapping
-	indexRequest := map[string]interface{}{
-		"mappings": map[string]interface{}{
-			"properties": map[string]interface{}{
-				"productId":   map[string]interface{}{"type": "integer"},
-				"handle":      map[string]interface{}{"type": "keyword"},
-				"title":       map[string]interface{}{"type": "keyword"},
-				"description": map[string]interface{}{"type": "text"},
-				"price":       map[string]interface{}{"type": "float"},
-				"categoryID":  map[string]interface{}{"type": "integer"},
-				"image":       map[string]interface{}{"type": "keyword"},
-				"createdAt":   map[string]interface{}{"type": "date"},
-				"updatedAt":   map[string]interface{}{"type": "date"},
-			},
-		},
-	}
-
-	req := esClient.Indices.Create("products").Body(strings.NewReader(serializeToJson(indexRequest)))
-
-	// Thực hiện request PUT mapping
-	res, err := req.Do(context.Background())
-	if err != nil {
-		log.Fatalf("Error creating index mapping: %s", err)
-	}
-	defer res.Body.Close()
-
-	if res.IsError() {
-		log.Fatalf("Error creating index mapping: %s", res.Status())
-	}
-
-	log.Println("Index mapping created successfully")
-}
+//func createIndexMapping(address, username, password string) {
+//	// Cấu hình kết nối Elasticsearch
+//	cfg := elasticsearch.Config{
+//		Addresses: []string{address},
+//		Username:  username,
+//		Password:  password,
+//		Transport: &http.Transport{
+//			TLSClientConfig: &tls.Config{
+//				InsecureSkipVerify: true,
+//			},
+//		},
+//	}
+//
+//	// Khởi tạo client Elasticsearch
+//	esClient, err := elasticsearch.NewClient(cfg)
+//	if err != nil {
+//		log.Fatalf("Error creating Elasticsearch client: %s", err)
+//	}
+//
+//	// Khởi tạo request PUT mapping
+//	indexRequest := map[string]interface{}{
+//		"mappings": map[string]interface{}{
+//			"properties": map[string]interface{}{
+//				"productId":   map[string]interface{}{"type": "integer"},
+//				"handle":      map[string]interface{}{"type": "keyword"},
+//				"title":       map[string]interface{}{"type": "keyword"},
+//				"description": map[string]interface{}{"type": "text"},
+//				"price":       map[string]interface{}{"type": "float"},
+//				"categoryID":  map[string]interface{}{"type": "integer"},
+//				"image":       map[string]interface{}{"type": "keyword"},
+//				"createdAt":   map[string]interface{}{"type": "date"},
+//				"updatedAt":   map[string]interface{}{"type": "date"},
+//			},
+//		},
+//	}
+//
+//	req := esClient.Indices.Create("products").Body(strings.NewReader(serializeToJson(indexRequest)))
+//
+//	// Thực hiện request PUT mapping
+//	res, err := req.Do(context.Background())
+//	if err != nil {
+//		log.Fatalf("Error creating index mapping: %s", err)
+//	}
+//	defer res.Body.Close()
+//
+//	if res.IsError() {
+//		log.Fatalf("Error creating index mapping: %s", res.Status())
+//	}
+//
+//	log.Println("Index mapping created successfully")
+//}
 
 func serializeToJson(data map[string]interface{}) string {
 	jsonData, _ := json.Marshal(data)
