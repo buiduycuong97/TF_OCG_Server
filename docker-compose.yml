@@ -23,16 +23,14 @@ services:
     restart: always
 
   redis:
-    network_mode: "host"
-    image: redis
+    image: "redis/redis-stack-server:latest"
     container_name: redis
     ports:
       - "6379:6379"
     restart: always
 
   rabbitmq:
-    network_mode: "host"
-    image: "rabbitmq:3-management"
+    image: "rabbitmq:3.12-management"
     container_name: rabbitmq
     ports:
       - "5672:5672"
@@ -41,13 +39,3 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: "register"
       RABBITMQ_DEFAULT_PASS: "register"
-
-  elasticsearch:
-    network_mode: "host"
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.2
-    container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-    ports:
-      - "9200:9200"
-    restart: always

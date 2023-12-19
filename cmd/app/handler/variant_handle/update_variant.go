@@ -159,6 +159,15 @@ func UpdateVariantByAdmin(w http.ResponseWriter, r *http.Request) {
 				res.ERROR(w, http.StatusBadRequest, err)
 				return
 			}
+
+			var product models.Product
+			product, err = dbms.GetProductByID(variant.ProductID)
+
+			err = utils.DeleteProductFromCache(product_handle.RedisClient, product.Handle)
+			if err != nil {
+				log.Println("Xóa sản phẩm trong cache thất bại: ", err)
+			}
+
 			res.JSON(w, http.StatusOK, variant)
 		}
 	} else {

@@ -42,6 +42,10 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	product.CategoryID, err = dbms.GetCategoryIdByProductID(product.ProductID)
+	product.CreatedAt, err = dbms.GetCreatedAtByProductID(product.ProductID)
+	product.Image, err = dbms.GetImageByProductID(product.ProductID)
+
 	Addresses := os.Getenv("ES_ADDRESS")
 	Username := os.Getenv("ES_USERNAME")
 	Password := os.Getenv("ES_PASSWORD")
@@ -69,17 +73,17 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	productData, err := convertProductToString(product)
-	if err != nil {
-		log.Println("Lỗi chuyển đổi dữ liệu sản phẩm thành JSON: ", err)
-		res.ERROR(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	err = utils.SetProductToCache(RedisClient, product.Handle, productData)
-	if err != nil {
-		log.Println("Lưu sản phẩm vào cache thất bại: ", err)
-	}
+	//productData, err := convertProductToString(product)
+	//if err != nil {
+	//	log.Println("Lỗi chuyển đổi dữ liệu sản phẩm thành JSON: ", err)
+	//	res.ERROR(w, http.StatusInternalServerError, err)
+	//	return
+	//}
+	//
+	//err = utils.SetProductToCache(RedisClient, product.Handle, productData)
+	//if err != nil {
+	//	log.Println("Lưu sản phẩm vào cache thất bại: ", err)
+	//}
 
 	//products, err := dbms.GetListProduct()
 	//if err != nil {
@@ -100,6 +104,11 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		Price:       product.Price,
 		CategoryID:  product.CategoryID,
 		UpdatedAt:   product.UpdatedAt,
+	}
+
+	err = utils.DeleteProductFromCache(RedisClient, product.Handle)
+	if err != nil {
+		log.Println("Xóa sản phẩm trong cache thất bại: ", err)
 	}
 
 	err = utils.DeleteListProductsFromCache(RedisClient, "list_products")

@@ -155,15 +155,11 @@ func UpdateProduct(product *models.Product, esClient *elasticsearch.Client) erro
 		return errors.New("Product does not exist")
 	}
 
-	// Bắt đầu một giao dịch trong cơ sở dữ liệu quan hệ
 	tx := database.Db.Begin()
 	if err := tx.Model(product).Where("product_id = ?", product.ProductID).Updates(product).Error; err != nil {
-		// Nếu có lỗi, rollback giao dịch và trả về lỗi
 		tx.Rollback()
 		return err
 	}
-
-	// Commit giao dịch trong cơ sở dữ liệu quan hệ
 	tx.Commit()
 
 	// Cập nhật sản phẩm trong Elasticsearch
@@ -171,7 +167,6 @@ func UpdateProduct(product *models.Product, esClient *elasticsearch.Client) erro
 		// Nếu có lỗi khi cập nhật Elasticsearch, rollback cập nhật trong cơ sở dữ liệu quan hệ
 		tx := database.Db.Begin()
 		if err := tx.Model(product).Where("product_id = ?", product.ProductID).Updates(existingProduct).Error; err != nil {
-			// Nếu rollback thất bại, ghi log và thông báo lỗi
 			log.Printf("Error rolling back database update: %s", err)
 		}
 		tx.Commit()
@@ -514,7 +509,15 @@ func buildElasticsearchQuery(
 		)
 	}
 
-	if fieldSort != "" && typeSort != "" {
+	// Thêm điều kiện sắp xếp
+	if fieldSort == "" {
+		sort := map[string]interface{}{
+			"updatedAt": map[string]interface{}{
+				"order": "desc", // Sắp xếp theo updatedAt theo thứ tự giảm dần
+			},
+		}
+		query["sort"] = []interface{}{sort}
+	} else if fieldSort != "" && typeSort != "" {
 		sort := map[string]interface{}{
 			fieldSort: map[string]interface{}{
 				"order": typeSort,
@@ -533,5 +536,38 @@ func convertToTime(timestamp string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, err
 	}
+	return parsedTime, nil
+}
+
+func GetCategoryIdByProductID(productID int32) (int, error) {
+	var categoryID int
+	err := database.Db.Model(&models.Product{}).Where("product_id = ?", productID).Pluck("category_id", &categoryID).Error
+	if err != nil {
+		return 0, err
+	}
+	return categoryID, nil
+}
+
+func GetImageByProductID(productID int32) (string, error) {
+	var image string
+	err := database.Db.Model(&models.Product{}).Where("product_id = ?", productID).Pluck("image", &image).Error
+	if err != nil {
+		return "", err
+	}
+	return image, nil
+}
+
+func GetCreatedAtByProductID(productID int32) (time.Time, error) {
+	var createdAt string
+	err := database.Db.Model(&models.Product{}).Where("product_id = ?", productID).Pluck("created_at", &createdAt).Error
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	parsedTime, err := convertToTime(createdAt)
+	if err != nil {
+		return time.Time{}, err
+	}
+
 	return parsedTime, nil
 }

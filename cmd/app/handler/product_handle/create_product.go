@@ -19,6 +19,7 @@ import (
 	"tf_ocg/cmd/app/dto/product_dto/response"
 	res "tf_ocg/pkg/response_api"
 	"tf_ocg/proto/models"
+	"tf_ocg/utils"
 )
 
 func getFilePath() (string, error) {
@@ -154,5 +155,11 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 		CategoryID:  product.CategoryID,
 		Image:       product.Image,
 	}
+
+	err = utils.DeleteListProductsFromCache(RedisClient, "list_products")
+	if err != nil {
+		log.Println("Xóa sản phẩm trong cache thất bại: ", err)
+	}
+
 	res.JSON(w, http.StatusCreated, createProductRes)
 }
