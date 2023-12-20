@@ -35,9 +35,12 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product.CategoryID, err = dbms.GetCategoryIdByProductID(product.ProductID)
-	product.CreatedAt, err = dbms.GetCreatedAtByProductID(product.ProductID)
-	product.Image, err = dbms.GetImageByProductID(product.ProductID)
+	productExist, err := dbms.GetProductByID(product.ProductID)
+
+	product.Handle = productExist.Handle
+	product.CategoryID = productExist.CategoryID
+	product.CreatedAt = productExist.CreatedAt
+	product.Image = productExist.Image
 
 	Addresses := os.Getenv("ES_ADDRESS")
 	Username := os.Getenv("ES_USERNAME")

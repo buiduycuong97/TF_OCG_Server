@@ -549,36 +549,3 @@ func convertToTime(timestamp string) (time.Time, error) {
 	}
 	return parsedTime, nil
 }
-
-func GetCategoryIdByProductID(productID int32) (int, error) {
-	var categoryID int
-	err := database.Db.Model(&models.Product{}).Where("product_id = ?", productID).Pluck("category_id", &categoryID).Error
-	if err != nil {
-		return 0, err
-	}
-	return categoryID, nil
-}
-
-func GetImageByProductID(productID int32) (string, error) {
-	var image string
-	err := database.Db.Model(&models.Product{}).Where("product_id = ?", productID).Pluck("image", &image).Error
-	if err != nil {
-		return "", err
-	}
-	return image, nil
-}
-
-func GetCreatedAtByProductID(productID int32) (time.Time, error) {
-	var createdAt string
-	err := database.Db.Model(&models.Product{}).Where("product_id = ?", productID).Pluck("created_at", &createdAt).Error
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	parsedTime, err := convertToTime(createdAt)
-	if err != nil {
-		return time.Time{}, err
-	}
-
-	return parsedTime, nil
-}
