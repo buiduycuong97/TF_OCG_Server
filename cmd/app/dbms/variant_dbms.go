@@ -8,8 +8,8 @@ import (
 )
 
 func CreateVariant(variant *models.Variant) (*models.Variant, error) {
-	existingVariant := &models.Variant{}
-	database.Db.Raw("SELECT * FROM variants WHERE product_id = ? AND option_value1 = ? AND option_product2 = ?", variant.ProductID, variant.OptionValue1, variant.OptionValue2).Scan(existingVariant)
+	existingVariant := models.Variant{}
+	database.Db.Raw("SELECT * FROM variants WHERE product_id = ? AND option_value1 = ? AND option_value2 = ?", variant.ProductID, variant.OptionValue1, variant.OptionValue2).Scan(&existingVariant)
 	if existingVariant.VariantID > 0 {
 		return nil, errors.New("Variant with the same product, optionProduct1, and optionProduct2 already exists")
 	}

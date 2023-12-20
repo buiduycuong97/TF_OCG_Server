@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
+	"github.com/gosimple/slug"
+	"github.com/joho/godotenv"
 	"io"
 	"log"
 	"strconv"
@@ -155,6 +157,11 @@ func UpdateProduct(product *models.Product, esClient *elasticsearch.Client) erro
 		return errors.New("Product does not exist")
 	}
 
+	product.Handle = slug.Make(product.Title)
+	if err := godotenv.Load(); err != nil {
+		return err
+	}
+
 	tx := database.Db.Begin()
 	if err := tx.Model(product).Where("product_id = ?", product.ProductID).Updates(product).Error; err != nil {
 		tx.Rollback()
@@ -233,7 +240,7 @@ func UpdateProductES(esClient *elasticsearch.Client, product *models.Product) er
 	return nil
 }
 
-func DeleteProduct(esClient *elasticsearch.Client, id int32) error {
+func DeleteProductDB(esClient *elasticsearch.Client, id int32) error {
 	err := DeleteProductES(esClient, id)
 	if err != nil {
 		return err
@@ -472,10 +479,11 @@ func buildElasticsearchQuery(
 	}
 
 	if searchText != "" {
+		// Thêm điều kiện tìm kiếm theo title
 		query["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"] = append(
 			query["query"].(map[string]interface{})["bool"].(map[string]interface{})["must"].([]map[string]interface{}),
 			map[string]interface{}{
-				"match": map[string]interface{}{
+				"match_phrase_prefix": map[string]interface{}{
 					"title": searchText,
 				},
 			},
@@ -518,6 +526,9 @@ func buildElasticsearchQuery(
 		}
 		query["sort"] = []interface{}{sort}
 	} else if fieldSort != "" && typeSort != "" {
+		if fieldSort == "title" {
+			fieldSort = "title.keyword"
+		}
 		sort := map[string]interface{}{
 			fieldSort: map[string]interface{}{
 				"order": typeSort,

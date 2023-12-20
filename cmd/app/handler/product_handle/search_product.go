@@ -59,7 +59,7 @@ func SearchProducts(w http.ResponseWriter, r *http.Request) {
 
 	pageSize, err := strconv.ParseInt(pageSizeStr, 10, 32)
 	if err != nil || pageSize <= 0 {
-		pageSize = 10
+		pageSize = 12
 	}
 
 	if err := godotenv.Load(); err != nil {

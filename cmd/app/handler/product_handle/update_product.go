@@ -4,8 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/gosimple/slug"
-	"github.com/joho/godotenv"
 	"io"
 	"log"
 	"net/http"
@@ -34,11 +32,6 @@ func UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	if product.Title == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Title is required"))
-		return
-	}
-
-	product.Handle = slug.Make(product.Title)
-	if err := godotenv.Load(); err != nil {
 		return
 	}
 

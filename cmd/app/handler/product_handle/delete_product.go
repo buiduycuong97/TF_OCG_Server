@@ -51,19 +51,16 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var product *models.Product
-	err = dbms.GetProductById(product, pid32)
+	var product models.Product
+	err = dbms.GetProductById(&product, pid32)
+
+	var handle = product.Handle
 
 	// Xóa sản phẩm và cập nhật Elasticsearch
-	err = dbms.DeleteProduct(esClient, pid32)
+	err = dbms.DeleteProductDB(esClient, pid32)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return
-	}
-
-	err = utils.DeleteProductFromCache(RedisClient, product.Handle)
-	if err != nil {
-		log.Println("Xóa sản phẩm trong cache thất bại: ", err)
 	}
 
 	// Trả về thông báo JSON thành công
@@ -73,9 +70,14 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		"Sản phẩm đã được xóa thành công",
 	}
 
-	err = utils.DeleteListProductsFromCache(RedisClient, "list_products")
+	err = utils.DeleteProductFromCache(RedisClient, handle)
 	if err != nil {
 		log.Println("Xóa sản phẩm trong cache thất bại: ", err)
+	}
+
+	err = utils.DeleteListProductsFromCache(RedisClient, "list_products")
+	if err != nil {
+		log.Println("Xóa list sản phẩm trong cache thất bại: ", err)
 	}
 
 	res.JSON(w, http.StatusOK, data)

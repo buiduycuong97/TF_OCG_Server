@@ -5,6 +5,7 @@ import (
 
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gorilla/mux"
@@ -77,7 +78,50 @@ func Init() {
 	product_handle.SetElasticsearchClient(esClient)
 	server.ElasticsearchClient = esClient
 
-	//createIndexMapping(Addresses, Username, Password)
+	indexName := "products" // Thay đổi tên index nếu cần
+	mapping := `{
+		"mappings": {
+			"properties": {
+				"productId": {"type": "integer"},
+				"handle": {"type": "keyword"},
+				"title": {
+				"type": "text",
+					"fields": {
+					  "keyword": {
+						"type": "keyword"
+					  }
+					}
+				},
+				"description": {"type": "text"},
+				"price": {"type": "float"},
+				"categoryID": {"type": "integer"},
+				"image": {"type": "keyword"},
+				"createdAt": {"type": "date"},
+				"updatedAt": {"type": "date"}
+			}
+		}
+	}`
+
+	exists, err := indexExists(server.ElasticsearchClient, indexName)
+	if err != nil {
+		log.Fatal("Error checking index existence: ", err)
+	}
+
+	// Nếu index tồn tại, xóa nó
+	if exists {
+		err := deleteIndex(server.ElasticsearchClient, indexName)
+		if err != nil {
+			log.Fatal("Error deleting index: ", err)
+		}
+	}
+
+	// Thêm lại index và mapping mới
+	err = putMappingToElasticsearch(server.ElasticsearchClient, indexName, mapping)
+	if err != nil {
+		log.Fatal("Error setting up Elasticsearch mapping: ", err)
+	} else {
+		log.Printf("Index %s (re)created with new mapping", indexName)
+	}
 
 	var products []models.Product
 	server.Db.Find(&products)
@@ -181,61 +225,61 @@ func cleanDescription(description string) string {
 	return cleaned
 }
 
-//func createIndexMapping(address, username, password string) {
-//	// Cấu hình kết nối Elasticsearch
-//	cfg := elasticsearch.Config{
-//		Addresses: []string{address},
-//		Username:  username,
-//		Password:  password,
-//		Transport: &http.Transport{
-//			TLSClientConfig: &tls.Config{
-//				InsecureSkipVerify: true,
-//			},
-//		},
-//	}
-//
-//	// Khởi tạo client Elasticsearch
-//	esClient, err := elasticsearch.NewClient(cfg)
-//	if err != nil {
-//		log.Fatalf("Error creating Elasticsearch client: %s", err)
-//	}
-//
-//	// Khởi tạo request PUT mapping
-//	indexRequest := map[string]interface{}{
-//		"mappings": map[string]interface{}{
-//			"properties": map[string]interface{}{
-//				"productId":   map[string]interface{}{"type": "integer"},
-//				"handle":      map[string]interface{}{"type": "keyword"},
-//				"title":       map[string]interface{}{"type": "keyword"},
-//				"description": map[string]interface{}{"type": "text"},
-//				"price":       map[string]interface{}{"type": "float"},
-//				"categoryID":  map[string]interface{}{"type": "integer"},
-//				"image":       map[string]interface{}{"type": "keyword"},
-//				"createdAt":   map[string]interface{}{"type": "date"},
-//				"updatedAt":   map[string]interface{}{"type": "date"},
-//			},
-//		},
-//	}
-//
-//	req := esClient.Indices.Create("products").Body(strings.NewReader(serializeToJson(indexRequest)))
-//
-//	// Thực hiện request PUT mapping
-//	res, err := req.Do(context.Background())
-//	if err != nil {
-//		log.Fatalf("Error creating index mapping: %s", err)
-//	}
-//	defer res.Body.Close()
-//
-//	if res.IsError() {
-//		log.Fatalf("Error creating index mapping: %s", res.Status())
-//	}
-//
-//	log.Println("Index mapping created successfully")
-//}
+func putMappingToElasticsearch(esClient *elasticsearch.Client, indexName string, mapping string) error {
+	// Thực hiện API PUT request để đặt mapping cho index
+	resp, err := esClient.Indices.Create(indexName, esClient.Indices.Create.WithBody(strings.NewReader(mapping)))
+	if err != nil {
+		log.Printf("Error creating index mapping: %s", err)
+		return err
+	}
+	defer resp.Body.Close()
 
-func serializeToJson(data map[string]interface{}) string {
-	jsonData, _ := json.Marshal(data)
-	return string(jsonData)
+	if resp.IsError() {
+		log.Printf("Elasticsearch responded with error: %s", resp.Status())
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", body)
+		return errors.New("Elasticsearch response error")
+	}
+
+	log.Printf("Index mapping created successfully")
+	return nil
+}
+
+func indexExists(client *elasticsearch.Client, indexName string) (bool, error) {
+	resp, err := client.Indices.Get([]string{indexName})
+	if err != nil {
+		log.Printf("Error checking if index exists: %s", err)
+		return false, err
+	}
+	defer resp.Body.Close()
+
+	if resp.IsError() {
+		// Xử lý lỗi nếu cần
+		log.Printf("Elasticsearch responded with error: %s", resp.Status())
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("Response body: %s", body)
+		if resp.StatusCode == 404 {
+			return false, nil
+		} else {
+			return false, errors.New("Elasticsearch response error")
+		}
+	}
+
+	return resp.StatusCode == 200, nil
+}
+
+func deleteIndex(client *elasticsearch.Client, indexName string) error {
+	resp, err := client.Indices.Delete([]string{indexName})
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.IsError() {
+		return fmt.Errorf("error deleting index: %s", resp.Status())
+	}
+
+	return nil
 }
 
 func main() {

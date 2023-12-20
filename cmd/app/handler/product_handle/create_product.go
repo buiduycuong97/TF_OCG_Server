@@ -23,7 +23,7 @@ import (
 )
 
 func getFilePath() (string, error) {
-	absPath, err := filepath.Abs("./double2c-firebase-adminsdk-64fpu-cb7acf1b93.json")
+	absPath, err := filepath.Abs("double2c-firebase-adminsdk-64fpu-cb7acf1b93.json")
 	if err != nil {
 		return "Fail to get file path", err
 	} else {
@@ -32,7 +32,7 @@ func getFilePath() (string, error) {
 }
 
 const (
-	credentialsPath       = "./double2c-firebase-adminsdk-64fpu-cb7acf1b93.json"
+	//credentialsPath       = "./double2c-firebase-adminsdk-64fpu-cb7acf1b93.json"
 	firebaseStorageBucket = "double2c.appspot.com"
 )
 

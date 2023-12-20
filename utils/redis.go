@@ -59,7 +59,7 @@ func GetProductHandleFromCache(client *redis.Client, handle string) (*response.P
 		fmt.Println("Cache miss for key:", cacheKey)
 		return nil, err
 	} else if err != nil {
-		fmt.Println("Error retrieving data from cache:", err)
+		fmt.Println("Error retriev9ing data from cache:", err)
 		return nil, err
 	}
 

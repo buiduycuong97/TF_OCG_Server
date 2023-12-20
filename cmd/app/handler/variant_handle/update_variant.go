@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	CredentialsPath       = "cmd/app/handler/product_handle/double2c-firebase-adminsdk-64fpu-cb7acf1b93.json"
+	CredentialsPath       = "double2c-firebase-adminsdk-64fpu-cb7acf1b93.json"
 	FirebaseStorageBucket = "double2c.appspot.com"
 )
 
