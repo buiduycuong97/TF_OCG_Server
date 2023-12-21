@@ -2,8 +2,10 @@ package order_handle
 
 import (
 	"fmt"
+	"github.com/joho/godotenv"
 	"github.com/robfig/cron/v3"
 	"gopkg.in/gomail.v2"
+	"os"
 	"tf_ocg/cmd/app/dbms"
 	"tf_ocg/proto/models"
 	"time"
@@ -40,8 +42,13 @@ func ScheduleOrderStatusUpdate() {
 }
 
 func sendOrderStatusUpdateEmail(email, orderID string) error {
-	emailAddress := "pau30012002@gmail.com"
-	emailPassword := "pljf fqgx yycq ynhq"
+	if err := godotenv.Load(); err != nil {
+		return err
+	}
+
+	emailAddress := os.Getenv("EMAIL_ADDRESS")
+	emailPassword := os.Getenv("EMAIL_PASSWORD")
+	emailhost := os.Getenv("EMAIL_HOST")
 	subject := "Order Status Update"
 	body := fmt.Sprintf("Your order with ID %s has been confirmed and is currently being shipped. Thank you for shopping with us!", orderID)
 
@@ -51,7 +58,7 @@ func sendOrderStatusUpdateEmail(email, orderID string) error {
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", body)
 
-	dialer := gomail.NewDialer("EMAIL_HOST", 587, emailAddress, emailPassword)
+	dialer := gomail.NewDialer(emailhost, 587, emailAddress, emailPassword)
 
 	if err := dialer.DialAndSend(m); err != nil {
 		return err

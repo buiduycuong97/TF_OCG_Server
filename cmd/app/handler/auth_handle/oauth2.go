@@ -27,7 +27,7 @@ type googleResponse struct {
 
 var (
 	googleOauthConfig = &oauth2.Config{
-		RedirectURL:  "http://localhost:8000/auth/callback-google",
+		RedirectURL:  "http://52.74.248.97:8000/auth/callback-google",
 		ClientID:     "275944160808-8b24hbsrsodun2vtd1ubobih7ll1bflm.apps.googleusercontent.com",
 		ClientSecret: "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",
 		Scopes:       []string{"profile", "email"},
@@ -99,7 +99,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	user.RefreshToken = refreshToken
 	err = dbms.UpdateUser(&user, user.UserID)
 	u := url.URL{
-		Host: "localhost:8080",
+		Host: "52.74.248.97:5000",
 		Path: "/login",
 	}
 	q := make(url.Values)
@@ -193,6 +193,7 @@ func sendResetPasswordEmail(email, resetToken string) error {
 
 	emailAddress := os.Getenv("EMAIL_ADDRESS")
 	emailPassword := os.Getenv("EMAIL_PASSWORD")
+	emailhost := os.Getenv("EMAIL_HOST")
 	subject := "Reset Your Password"
 	body := fmt.Sprintf("Click the following link to reset your password: http://localhost:8080/reset-password?resetToken=%s", resetToken)
 
@@ -202,7 +203,7 @@ func sendResetPasswordEmail(email, resetToken string) error {
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", body)
 
-	dialer := gomail.NewDialer("smtp.gmail.com", 587, emailAddress, emailPassword)
+	dialer := gomail.NewDialer(emailhost, 587, emailAddress, emailPassword)
 
 	if err := dialer.DialAndSend(m); err != nil {
 		return err

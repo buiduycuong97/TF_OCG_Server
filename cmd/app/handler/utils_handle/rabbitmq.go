@@ -144,6 +144,7 @@ func SendOrderStatusUpdateEmail(email, emailContent string) error {
 
 	emailAddress := os.Getenv("EMAIL_ADDRESS")
 	emailPassword := os.Getenv("EMAIL_PASSWORD")
+	emailhost := os.Getenv("EMAIL_HOST")
 	subject := "Order Status Update"
 	body := fmt.Sprintf(emailContent)
 
@@ -153,7 +154,7 @@ func SendOrderStatusUpdateEmail(email, emailContent string) error {
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", body)
 
-	dialer := gomail.NewDialer("smtp.gmail.com", 587, emailAddress, emailPassword)
+	dialer := gomail.NewDialer(emailhost, 587, emailAddress, emailPassword)
 
 	if err := dialer.DialAndSend(m); err != nil {
 		return err

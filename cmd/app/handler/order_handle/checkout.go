@@ -285,6 +285,7 @@ func SendOrderStatusUpdateEmail(email, currentLevel string, discount string) err
 	}
 	emailAddress := os.Getenv("EMAIL_ADDRESS")
 	emailPassword := os.Getenv("EMAIL_PASSWORD")
+	emailhost := os.Getenv("EMAIL_HOST")
 	subject := "Order Status Update"
 	body := fmt.Sprintf("Congratulations on achieving %s membership, Double 2C will send you a discount code [%s]!", currentLevel, discount)
 
@@ -294,7 +295,7 @@ func SendOrderStatusUpdateEmail(email, currentLevel string, discount string) err
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", body)
 
-	dialer := gomail.NewDialer("smtp.gmail.com", 587, emailAddress, emailPassword)
+	dialer := gomail.NewDialer(emailhost, 587, emailAddress, emailPassword)
 
 	if err := dialer.DialAndSend(m); err != nil {
 		return err
