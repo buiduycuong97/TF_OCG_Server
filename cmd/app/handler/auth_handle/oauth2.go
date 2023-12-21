@@ -27,7 +27,7 @@ type googleResponse struct {
 
 var (
 	googleOauthConfig = &oauth2.Config{
-		RedirectURL:  "http://52.74.248.97:8000/auth/callback-google",
+		RedirectURL:  "https://gottago.cyou/api/auth/callback-google",
 		ClientID:     "275944160808-8b24hbsrsodun2vtd1ubobih7ll1bflm.apps.googleusercontent.com",
 		ClientSecret: "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",
 		Scopes:       []string{"profile", "email"},
@@ -99,7 +99,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	user.RefreshToken = refreshToken
 	err = dbms.UpdateUser(&user, user.UserID)
 	u := url.URL{
-		Host: "52.74.248.97:5000",
+		Host: "gottago.cyou",
 		Path: "/login",
 	}
 	q := make(url.Values)
@@ -107,6 +107,7 @@ func HandleCallback(w http.ResponseWriter, r *http.Request) {
 	q.Set("userName", result.UserName)
 	q.Set("email", result.Email)
 	q.Set("role", result.Role)
+	q.Set("phoneNumber", result.PhoneNumber)
 	q.Set("userType", result.UserType)
 	q.Set("accessToken", accessToken)
 	q.Set("refreshToken", refreshToken)

@@ -77,6 +77,46 @@ func DeleteDiscount(discount *models.Discount, id int32) error {
 	return nil
 }
 
+func DeleteDiscountIfExists(discountID int32) error {
+	// Kiểm tra xem có tồn tại mã trong user_discount không
+	var userDiscount models.UserDiscount
+
+	// Kiểm tra xem có tồn tại mã trong user_discount không và lấy giá trị UserDiscount nếu tồn tại
+	if err := database.Db.Where("discount_id = ?", discountID).First(&userDiscount).Error; err != nil {
+		// Nếu không tìm thấy user_discount, chỉ xóa discount
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := database.Db.Exec("DELETE FROM discounts WHERE discount_id = ?", discountID).Error; err != nil {
+				return err
+			}
+			return nil
+		}
+		// Nếu có lỗi khác, trả về lỗi
+		return err
+	}
+
+	// Nếu tồn tại trong user_discount, thì xóa user_discount
+	if err := database.Db.Delete(&userDiscount).Error; err != nil {
+		return err
+	}
+
+	// Xóa discount
+	if err := database.Db.Exec("DELETE FROM discounts WHERE discount_id = ?", discountID).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func GetUserDiscountByDiscountID(discountID int32) (*models.UserDiscount, error) {
+	var userDiscount models.UserDiscount
+
+	if err := database.Db.Where("discount_id = ?", discountID).First(&userDiscount).Error; err != nil {
+		return nil, err
+	}
+
+	return &userDiscount, nil
+}
+
 func DeleteDiscountAutoGen(discount *models.Discount, id int32) error {
 	if err := database.Db.Where("discount_id = ?", id).Delete(discount).Error; err != nil {
 		return err

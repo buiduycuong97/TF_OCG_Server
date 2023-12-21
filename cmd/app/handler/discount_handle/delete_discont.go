@@ -1,14 +1,11 @@
 package discount_handle
 
 import (
-	"encoding/json"
 	"github.com/gorilla/mux"
-	"io"
 	"net/http"
 	"strconv"
 	"tf_ocg/cmd/app/dbms"
 	res "tf_ocg/pkg/response_api"
-	"tf_ocg/proto/models"
 )
 
 func DeleteDiscount(w http.ResponseWriter, r *http.Request) {
@@ -20,20 +17,7 @@ func DeleteDiscount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var deleteDiscount models.Discount
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		res.ERROR(w, http.StatusUnprocessableEntity, err)
-		return
-	}
-
-	err = json.Unmarshal(body, &deleteDiscount)
-	if err != nil {
-		res.ERROR(w, http.StatusUnprocessableEntity, err)
-		return
-	}
-
-	err = dbms.DeleteDiscount(&deleteDiscount, discountID)
+	err = dbms.DeleteDiscountIfExists(discountID)
 	if err != nil {
 		res.ERROR(w, http.StatusInternalServerError, err)
 		return

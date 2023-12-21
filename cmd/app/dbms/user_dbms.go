@@ -11,9 +11,10 @@ import "tf_ocg/proto/models"
 // create a user
 func CreateUser(user *models.User) (*models.User, error) {
 	newUser := models.User{}
+	userType := "app"
 
 	// Kiểm tra xem email đã tồn tại hay chưa
-	database.Db.Raw("SELECT * FROM users WHERE email = ? ", user.Email).Scan(&newUser)
+	database.Db.Raw("SELECT * FROM users WHERE email = ? AND user_type = ?", user.Email, userType).Scan(&newUser)
 	if user.Email == newUser.Email {
 		return nil, errors.New("Email existed!")
 	}

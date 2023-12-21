@@ -246,6 +246,7 @@ func UpdateLevelAndCheckDiscount(tx *gorm.DB, user *models.User) error {
 			return err
 		}
 	}
+
 	if user.OrderCount >= 20 && user.TotalSpent >= 5000000 && user.CurrentLevel == models.Silver {
 		user.CurrentLevel = models.Gold
 		user.NextLevel = models.Diamond
